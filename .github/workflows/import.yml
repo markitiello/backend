@@ -23,3 +23,5 @@ jobs:
           BENZINA_DB_DSN: ${{ secrets.BENZINA_DB_DSN }}
           BENZINA_DB_USER: ${{ secrets.BENZINA_DB_USER }}
           BENZINA_DB_PASSWORD: ${{ secrets.BENZINA_DB_PASSWORD }}
+          # Facoltativo: JSON del service account Firebase per le notifiche push.
+          BENZINA_FCM_CREDENTIALS: ${{ secrets.BENZINA_FCM_CREDENTIALS }}

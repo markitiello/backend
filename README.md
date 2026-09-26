@@ -18,6 +18,7 @@ MIMIT (CSV giornalieri) ──bin/import.php──▶ database ──▶ API (Sl
 - **Import** (`src/Importer.php`): ogni mattina scarica anagrafica e prezzi dal MIMIT, aggiorna i distributori, sostituisce i prezzi attuali, aggiunge allo storico **solo i prezzi cambiati** e calcola le medie nazionali del giorno. Con i file reali (~24.000 distributori, ~75.000 prezzi) impiega pochi secondi.
 - **API** (`src/App.php`, `src/Http/ApiController.php`): rotte e parametri come descritti in `docs/openapi.yaml`.
 - **Accesso**: solo l'app, con Firebase App Check; chiavi statiche per sviluppo (vedi [Autenticazione](docs/API.md#autenticazione)).
+- **Notifiche push** (`src/Trend/`): dopo l'import rileva quando la media nazionale inizia a salire o scendere e lo notifica con Firebase Cloud Messaging (Android e iOS). Vedi [Notifiche push di tendenza](docs/API.md#notifiche-push-di-tendenza).
 - **Google Places** (`src/Google/PlacesClient.php`): la chiave Google resta sul server; si salva solo il `place_id`.
 - **Database**: SQLite, MySQL/MariaDB o PostgreSQL, tramite PDO. Le tabelle si creano da sole.
 
@@ -28,6 +29,7 @@ MIMIT (CSV giornalieri) ──bin/import.php──▶ database ──▶ API (Sl
 | `price_changes` | Storico: una riga per prezzo comunicato |
 | `national_averages` | Media nazionale per giorno, carburante e modalità |
 | `imports` | Esito di ogni import |
+| `trend_alerts` | Tendenze rilevate e notifiche inviate |
 | `google_places` | Abbinamento distributore → luogo Google |
 
 ## Sviluppo
@@ -62,6 +64,7 @@ BENZINA_TEST_DB_DSN="mysql:host=localhost;dbname=benzina_test" BENZINA_TEST_DB_U
 I test coprono:
 
 - lettura dei CSV MIMIT, anche con righe malformate;
+- rilevamento delle tendenze, pausa tra avvisi, reinvio e messaggi FCM (con Google simulato);
 - import e storico;
 - tutte le rotte e gli errori;
 - verifica dei token App Check: firma, scadenza, progetto, app;
@@ -82,6 +85,10 @@ Variabili d'ambiente o file `.env` (vedi `.env.example` e `src/Config.php`):
 | `BENZINA_API_KEYS` | — | Chiavi statiche, separate da virgola |
 | `BENZINA_AUTH_DISABLED` | `false` | Solo sviluppo: nessun controllo di accesso |
 | `BENZINA_GOOGLE_PLACES_API_KEY` | — | Attiva le recensioni Google |
+| `BENZINA_FCM_CREDENTIALS` | — | Service account Firebase: attiva le notifiche push |
+| `BENZINA_TREND_MIN_DAYS` | `3` | Giorni consecutivi per una tendenza |
+| `BENZINA_TREND_MIN_CHANGE` | `0.005` | Variazione minima (0,5%) |
+| `BENZINA_TREND_COOLDOWN_DAYS` | `7` | Pausa tra avvisi nella stessa direzione |
 | `BENZINA_DOCS_ENABLED` | `true` | `/docs` e `/openapi.yaml` |
 
 Senza `BENZINA_APPCHECK_PROJECT_NUMBER` né `BENZINA_API_KEYS` il server rifiuta tutte le richieste `/v1`.
@@ -93,14 +100,14 @@ Senza `BENZINA_APPCHECK_PROJECT_NUMBER` né `BENZINA_API_KEYS` il server rifiuta
 1. `composer install --no-dev --optimize-autoloader` e caricare i file.
 2. La cartella pubblica del dominio deve essere `public/`; il `.htaccess` inoltra le richieste a `index.php`.
 3. Creare `.env` con i dati del database MySQL.
-4. Cron giornaliero, dopo le 8: `php /percorso/bin/import.php`.
+4. Cron giornaliero, dopo le 8: `php /percorso/bin/import.php` (importa i prezzi e invia le notifiche di tendenza).
 
 **Container:** il `Dockerfile` (PHP 8.4 + Apache) serve `public/`, adatto ad esempio a Cloud Run, Render o Fly.io. In alternativa al cron, `.github/workflows/import.yml` esegue l'import da GitHub con i secret `BENZINA_DB_DSN`, `BENZINA_DB_USER` e `BENZINA_DB_PASSWORD`.
 
 ## Da fare
 
 - [ ] Backfill dello storico dall'[archivio MIMIT](https://www.mimit.gov.it/it/open-data/elenco-dataset/carburanti-archivio-prezzi).
-- [ ] Notifiche push (soglie e preferiti) con Firebase Cloud Messaging.
+- [ ] Notifiche personali (soglia di prezzo, preferiti, tendenza della propria zona): richiedono di registrare i dispositivi.
 - [ ] Limite di richieste per client.
 
 Dati prezzi: MIMIT — Osservaprezzi Carburanti, licenza IODL 2.0.

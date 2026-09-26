@@ -78,6 +78,15 @@ final class Database
                 day DATE PRIMARY KEY, stations INTEGER NOT NULL, prices INTEGER NOT NULL,
                 finished_at $timestamp NOT NULL
             )$engine",
+            // Tendenze della media nazionale rilevate dopo gli import. sent_at: quando
+            // la notifica push è stata inviata (NULL = non ancora / FCM non configurato).
+            "CREATE TABLE IF NOT EXISTS trend_alerts (
+                fuel {$text(10)} NOT NULL, mode {$text(10)} NOT NULL, day DATE NOT NULL,
+                direction {$text(4)} NOT NULL, days INTEGER NOT NULL,
+                change_ratio DOUBLE PRECISION NOT NULL, price DOUBLE PRECISION NOT NULL,
+                sent_at $timestamp NULL,
+                PRIMARY KEY (fuel, mode, day)
+            )$engine",
             // Abbinamento con Google: si salva solo il place_id (NULL = cercato, non trovato).
             "CREATE TABLE IF NOT EXISTS google_places (
                 station_id INTEGER PRIMARY KEY, place_id {$text(300)} NULL, checked_at $timestamp NOT NULL
@@ -110,7 +119,7 @@ final class Database
 
     public function dropSchema(): void
     {
-        foreach (['stations', 'current_prices', 'price_changes', 'national_averages', 'imports', 'google_places'] as $t) {
+        foreach (['stations', 'current_prices', 'price_changes', 'national_averages', 'imports', 'google_places', 'trend_alerts'] as $t) {
             $this->pdo->exec("DROP TABLE IF EXISTS $t");
         }
     }

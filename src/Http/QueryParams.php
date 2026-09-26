@@ -24,6 +24,11 @@ final class QueryParams
         return is_string($value) && $value !== '' ? $value : null;
     }
 
+    public function has(string $name): bool
+    {
+        return $this->raw($name) !== null;
+    }
+
     public function float(string $name, float $min, float $max, ?float $default = null, bool $exclusiveMin = false): float
     {
         $raw = $this->raw($name);

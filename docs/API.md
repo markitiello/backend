@@ -183,6 +183,56 @@ Calcolata a ogni import: media di tutti i distributori, esclusi i prezzi comunic
 
 Media giornaliera dei distributori entro `radius_km` da `lat`/`lng`. Parametri come `nearby` più `days`. Serve per il confronto "la tua zona vs Italia".
 
+### `GET /v1/trends/alerts`
+
+Tendenze dei prezzi segnalate, dalla più recente: le stesse inviate come notifiche push (vedi sotto). Parametri: `fuel` (facoltativo, altrimenti tutti) e `days` (1–366, default 30).
+
+```json
+{
+  "alerts": [
+    {
+      "fuel": "benzina",
+      "mode": "self",
+      "day": "2026-09-23",
+      "direction": "down",
+      "days": 3,
+      "change": -0.0162,
+      "price": 1.82,
+      "title": "Benzina self in calo",
+      "body": "Media nazionale 1,820 €/l: −1,6% in 3 giorni.",
+      "topic": "trend_benzina_self"
+    }
+  ]
+}
+```
+
+## Notifiche push di tendenza
+
+Dopo ogni import il server controlla la media nazionale di ogni carburante. Una tendenza **inizia** quando la media sale (o scende) per **3 giorni di fila** con una variazione complessiva di almeno lo **0,5%**. Viene segnalata una sola volta, il giorno in cui inizia. Dopo un avviso, per **7 giorni** non ne arriva un altro nella stessa direzione. Le soglie si cambiano con `BENZINA_TREND_MIN_DAYS`, `BENZINA_TREND_MIN_CHANGE` e `BENZINA_TREND_COOLDOWN_DAYS`.
+
+Le notifiche partono con **Firebase Cloud Messaging**, che le consegna sia su Android sia su iOS (tramite APNs). Si usano i **topic**: l'app si iscrive al topic del carburante scelto e il server manda un solo messaggio per topic. Il server quindi non conserva token né altri dati dei dispositivi.
+
+| Topic | Carburante |
+|---|---|
+| `trend_benzina_self`, `trend_benzina_servito` | Benzina |
+| `trend_diesel_self`, `trend_diesel_servito` | Diesel |
+| `trend_gpl` | GPL |
+| `trend_metano` | Metano |
+
+Contenuto del messaggio:
+
+- `notification`: titolo e testo, es. "Benzina self in calo" / "Media nazionale 1,819 €/l: −1,2% in 3 giorni.";
+- `data`: `{"type": "trend", "fuel": "benzina", "mode": "self", "direction": "down", "day": "2026-09-23"}`, per aprire la schermata Andamento;
+- Android: canale di notifica `price_trends`; iOS: suono predefinito, priorità normale.
+
+Per attivarle sul server: `BENZINA_FCM_CREDENTIALS` con il JSON di un service account Firebase (Console Firebase → Impostazioni progetto → Account di servizio → Genera nuova chiave privata). Verifica con:
+
+```sh
+php bin/push-test.php trend_benzina_self
+```
+
+Senza credenziali le tendenze vengono comunque rilevate e restano consultabili con `/v1/trends/alerts`. Una notifica non partita (es. FCM irraggiungibile) viene ritentata all'import successivo, se l'avviso ha al massimo un giorno.
+
 ## Aggiornamento dei dati
 
 I prezzi arrivano dagli [open data del MIMIT](https://www.mimit.gov.it/it/open-data/elenco-dataset/carburanti-prezzi-praticati-e-anagrafica-degli-impianti) (licenza IODL 2.0), pubblicati una volta al giorno con i prezzi validi alle 8. L'import (`php bin/import.php`) gira ogni mattina; `data_date` indica l'ultimo import riuscito.

@@ -38,6 +38,16 @@ final class Config
         // I prezzi comunicati da più giorni di così non entrano nelle medie.
         public readonly int $averageMaxAgeDays = 30,
         public readonly bool $docsEnabled = true,
+        // --- Notifiche di tendenza (vedi src/Trend) ---------------------------
+        // Service account Firebase (JSON) per inviare le notifiche push con FCM:
+        // percorso del file oppure il contenuto stesso.
+        public readonly ?string $fcmCredentials = null,
+        // Giorni consecutivi di salita o discesa della media nazionale.
+        public readonly int $trendMinDays = 3,
+        // Variazione minima complessiva nei giorni della tendenza (0.005 = 0,5%).
+        public readonly float $trendMinChange = 0.005,
+        // Dopo un avviso, giorni senza un altro avviso nella stessa direzione.
+        public readonly int $trendCooldownDays = 7,
     ) {
     }
 
@@ -68,6 +78,10 @@ final class Config
             mimitPricesUrl: $get('MIMIT_PRICES_URL') ?? self::MIMIT_PRICES_URL,
             averageMaxAgeDays: (int) ($get('AVERAGE_MAX_AGE_DAYS') ?? 30),
             docsEnabled: $bool('DOCS_ENABLED', true),
+            fcmCredentials: $get('FCM_CREDENTIALS'),
+            trendMinDays: (int) ($get('TREND_MIN_DAYS') ?? 3),
+            trendMinChange: (float) ($get('TREND_MIN_CHANGE') ?? 0.005),
+            trendCooldownDays: (int) ($get('TREND_COOLDOWN_DAYS') ?? 7),
         );
     }
 

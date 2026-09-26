@@ -194,6 +194,35 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "422": { $ref: "#/components/responses/InvalidParameters" }
 
+  /v1/trends/alerts:
+    get:
+      tags: [Andamento prezzi]
+      summary: Tendenze dei prezzi segnalate
+      description: |
+        Tendenze della media nazionale rilevate dopo gli import (le stesse inviate
+        come notifiche push ai topic `trend_*`), dalla più recente. Una tendenza
+        inizia quando la media sale o scende per 3 giorni di fila di almeno lo 0,5%
+        complessivo; dopo un avviso, per 7 giorni non ne arriva un altro nella
+        stessa direzione.
+      operationId: trendAlerts
+      parameters:
+        - name: fuel
+          in: query
+          description: Solo questo carburante. Se assente, tutti.
+          schema: { $ref: "#/components/schemas/Fuel" }
+        - name: days
+          in: query
+          description: Avvisi degli ultimi N giorni, oggi incluso.
+          schema: { type: integer, minimum: 1, maximum: 366, default: 30 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrendAlertList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/InvalidParameters" }
+
 components:
   securitySchemes:
     AppCheck:
@@ -446,3 +475,29 @@ components:
           type: string
           description: Testo di attribuzione obbligatorio da mostrare nell'app.
           example: Valutazioni e recensioni fornite da Google
+
+    TrendAlert:
+      type: object
+      required: [fuel, mode, day, direction, days, change, price, title, body, topic]
+      properties:
+        fuel: { $ref: "#/components/schemas/Fuel" }
+        mode: { $ref: "#/components/schemas/Mode" }
+        day: { type: string, format: date, description: "Giorno in cui la tendenza è stata rilevata." }
+        direction:
+          type: string
+          enum: [up, down]
+          description: "`up` prezzi in aumento, `down` in calo."
+        days: { type: integer, description: "Giorni consecutivi di aumento o calo.", example: 3 }
+        change: { type: number, description: "Variazione complessiva (−0.012 = −1,2%).", example: -0.012 }
+        price: { type: number, description: "Media nazionale del giorno.", example: 1.819 }
+        title: { type: string, example: Benzina self in calo }
+        body: { type: string, example: "Media nazionale 1,819 €/l: −1,2% in 3 giorni." }
+        topic: { type: string, description: "Topic FCM a cui è stata inviata la notifica.", example: trend_benzina_self }
+
+    TrendAlertList:
+      type: object
+      required: [alerts]
+      properties:
+        alerts:
+          type: array
+          items: { $ref: "#/components/schemas/TrendAlert" }

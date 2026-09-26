@@ -10,6 +10,7 @@ use Benzina\Google\GooglePlacesException;
 use Benzina\Google\PlacesClient;
 use Benzina\Mode;
 use Benzina\PriceService;
+use Benzina\Trend\TrendAlerts;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -132,6 +133,16 @@ final class ApiController
         $days = self::days($q);
         $q->check();
         return self::json($response, $this->prices->nationalTrend($fuel, $mode, $days));
+    }
+
+    public function trendAlerts(Request $request, Response $response): Response
+    {
+        $q = new QueryParams($request->getQueryParams());
+        $fuel = $q->has('fuel') ? $q->enum('fuel', Fuel::class, Fuel::Benzina) : null;
+        $days = $q->int('days', 1, 366, 30);
+        $q->check();
+        $until = $this->prices->latestImportDay() ?? date('Y-m-d');
+        return self::json($response, ['alerts' => TrendAlerts::recent($this->db, $until, $days, $fuel)]);
     }
 
     public function areaTrend(Request $request, Response $response): Response

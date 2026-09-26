@@ -60,6 +60,7 @@ final class App
             $v1->get('/stations/{id:[0-9]+}/google-rating', [$api, 'googleRating']);
             $v1->get('/trends/national', [$api, 'nationalTrend']);
             $v1->get('/trends/area', [$api, 'areaTrend']);
+            $v1->get('/trends/alerts', [$api, 'trendAlerts']);
         })->add(static function (Request $request, Handler $handler) use ($authenticator): Response {
             $allowed = $authenticator->allows(
                 $request->getHeaderLine(Authenticator::APPCHECK_HEADER),

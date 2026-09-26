@@ -4,3 +4,7 @@
 /.env
 /.phpunit.cache/
 *.db
+
+# Credenziali Firebase: mai nel repository.
+*service-account*.json
+firebase-*.json
