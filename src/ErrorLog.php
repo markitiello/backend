@@ -9,8 +9,9 @@ namespace Benzina;
  *
  * Non si usa error_log() senza un file configurato: in quel caso PHP scrive
  * su stderr e IIS (Windows, es. Plesk) trasforma qualsiasi risposta in un 500
- * vuoto, perdendo anche il messaggio. Si scrive quindi nel file di log di PHP
- * se è impostato, altrimenti in var/log/errori.log.
+ * vuoto, perdendo anche il messaggio. Si scrive direttamente nel file di log
+ * di PHP se è impostato, altrimenti in var/log/errori.log; se il file non è
+ * scrivibile il messaggio si perde, ma la risposta resta corretta.
  */
 final class ErrorLog
 {
@@ -19,15 +20,18 @@ final class ErrorLog
     public static function write(string $message): void
     {
         $line = date('Y-m-d H:i:s') . ' ' . $message;
-        $phpLog = (string) ini_get('error_log');
-        if (PHP_SAPI === 'cli' || ($phpLog !== '' && $phpLog !== 'syslog')) {
+        if (PHP_SAPI === 'cli') {
             error_log($line);
             return;
         }
-        $dir = dirname(self::FILE);
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0775, true);
+        $file = (string) ini_get('error_log');
+        if ($file === '' || $file === 'syslog') {
+            $file = self::FILE;
+            if (!is_dir(dirname($file))) {
+                @mkdir(dirname($file), 0775, true);
+            }
         }
-        @file_put_contents(self::FILE, $line . PHP_EOL, FILE_APPEND | LOCK_EX);
+        // Mai error_log() su un file non scrivibile: PHP ripiegherebbe su stderr.
+        @file_put_contents($file, $line . PHP_EOL, FILE_APPEND | LOCK_EX);
     }
 }

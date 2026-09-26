@@ -36,8 +36,12 @@ final class Database
                 );
             }
         }
-        $options = str_starts_with($config->dbDsn, 'mysql:')
-            ? [PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"] : [];
+        // Timeout di connessione: un database irraggiungibile deve dare un errore
+        // chiaro, non tenere la richiesta appesa fino al timeout del web server.
+        $options = [PDO::ATTR_TIMEOUT => 5];
+        if (str_starts_with($config->dbDsn, 'mysql:')) {
+            $options[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES utf8mb4';
+        }
         return new self(new PDO($config->dbDsn, $config->dbUser, $config->dbPassword, $options));
     }
 

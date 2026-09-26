@@ -6,6 +6,20 @@ use Benzina\App;
 use Benzina\Config;
 use Benzina\ErrorLog;
 
+// Su IIS (Windows) tutto ciò che PHP scrive su stderr diventa un 500 vuoto:
+// avvisi ed errori vanno invece in un file di log, se PHP non ne ha già uno.
+if ((string) ini_get('error_log') === '') {
+    @mkdir(__DIR__ . '/../var/log', 0775, true);
+    ini_set('error_log', __DIR__ . '/../var/log/errori.log');
+}
+// BENZINA_DEBUG=true nel .env (solo per configurare il server): gli errori di
+// PHP compaiono nella risposta invece che nel log.
+if (preg_match('/^\s*BENZINA_DEBUG\s*=\s*["\']?(1|true|yes|on)\b/mi', (string) @file_get_contents(__DIR__ . '/../.env'))) {
+    ini_set('display_errors', '1');
+    ini_set('log_errors', '0');
+    error_reporting(E_ALL);
+}
+
 require __DIR__ . '/../vendor/autoload.php';
 
 $env = Config::loadEnv(__DIR__ . '/../.env');
