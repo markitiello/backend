@@ -140,6 +140,14 @@ Carica il progetto con le dipendenze di produzione via FTP/FTPS (serve `lftp`). 
 2. Nel pannello dell'hosting, puntare il dominio su `public/`; se non si può, basta la cartella del progetto, grazie al `.htaccess` nella radice.
 3. Impostare il cron giornaliero `php .../bin/import.php`.
 
+**Hosting Windows (IIS, es. Plesk per Windows):** IIS non legge i file `.htaccess`: al loro posto ci sono i `web.config`, nella radice e in `public/`, con le stesse regole. Servono:
+- il modulo URL Rewrite di IIS, già presente su Plesk;
+- PHP 8.2 o successivo, da Plesk → Siti web e domini → Impostazioni PHP;
+- se si usa SQLite, i permessi di scrittura sulla cartella `var/` per l'utente del sito, da Plesk → File → Modifica permessi;
+- l'import giornaliero come "Operazione pianificata" di Plesk, che esegue `php.exe` con il percorso di `bin\import.php`.
+
+Gli errori PHP sono in Plesk → Log.
+
 ### Container
 
 Il `Dockerfile` (PHP 8.4 + Apache) serve `public/` ed è adatto ad esempio a Cloud Run, Render o Fly.io. In alternativa al cron, `.github/workflows/import.yml` esegue l'import da GitHub; servono i secret del database, più `BENZINA_FCM_CREDENTIALS` per le notifiche.

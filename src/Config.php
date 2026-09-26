@@ -92,7 +92,9 @@ final class Config
             return $dsn;
         }
         $path = substr($dsn, strlen('sqlite:'));
-        return str_starts_with($path, '/') ? $dsn : 'sqlite:' . dirname(__DIR__) . '/' . $path;
+        // Assoluto: /percorso (Linux, macOS) oppure C:\percorso o \\server (Windows).
+        $absolute = preg_match('#^(/|\\\\|[A-Za-z]:[\\\\/])#', $path) === 1;
+        return $absolute ? $dsn : 'sqlite:' . dirname(__DIR__) . '/' . $path;
     }
 
     /**

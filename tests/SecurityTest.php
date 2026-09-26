@@ -124,5 +124,10 @@ final class SecurityTest extends TestCase
         // I percorsi SQLite relativi partono dalla cartella del progetto.
         $default = Config::fromEnv([]);
         self::assertSame('sqlite:' . dirname(__DIR__) . '/var/benzina.db', $default->dbDsn);
+
+        // I percorsi assoluti restano com'erano, anche quelli di Windows.
+        foreach (['/srv/benzina.db', 'C:\\dati\\benzina.db', 'D:/dati/benzina.db', '\\\\nas\\benzina.db'] as $path) {
+            self::assertSame('sqlite:' . $path, Config::fromEnv(['BENZINA_DB_DSN' => 'sqlite:' . $path])->dbDsn);
+        }
     }
 }
