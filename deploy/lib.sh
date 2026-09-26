@@ -69,6 +69,30 @@ build_release() {
   chmod 755 "$build"
 }
 
+# Controlla che ci siano i programmi usati dal deploy, con un messaggio chiaro.
+require_tools() {
+  local tool
+  for tool in php composer git "$@"; do
+    command -v "$tool" >/dev/null || die "Serve $tool: installarlo e riprovare (vedi README, \"Deploy\")."
+  done
+}
+
+# Esegue i test in locale. Se mancano le dipendenze di sviluppo (PHPUnit), le
+# installa prima con Composer. In caso di errore mostra l'output dei test.
+run_tests() {
+  if [[ ! -x "$ROOT/vendor/bin/phpunit" ]]; then
+    log "Installo le dipendenze di sviluppo (composer install)"
+    (cd "$ROOT" && composer install --no-interaction --no-progress --quiet) \
+      || die "composer install non riuscito."
+  fi
+  local output
+  if ! output="$(cd "$ROOT" && vendor/bin/phpunit --no-progress 2>&1)"; then
+    printf '%s\n' "$output" >&2
+    die "Test falliti: deploy annullato (--skip-tests per saltarli)."
+  fi
+  ok "Test superati"
+}
+
 # GET /health: deve rispondere 200 con "status":"ok".
 health_check() {
   local url="${DEPLOY_URL%/}/health" body

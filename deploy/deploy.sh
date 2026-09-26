@@ -29,6 +29,7 @@ while [[ $# -gt 0 ]]; do
 done
 load_config "$CONFIG"
 : "${DEPLOY_HOST:?}" "${DEPLOY_PATH:?}" "${DEPLOY_URL:?}"
+require_tools rsync curl
 DEPLOY_PHP="${DEPLOY_PHP:-php}"
 DEPLOY_KEEP="${DEPLOY_KEEP:-5}"
 
@@ -41,8 +42,7 @@ log "Deploy di $REVISION su $DEPLOY_HOST:$DEPLOY_PATH (versione $RELEASE)"
 
 if [[ "$SKIP_TESTS" -eq 0 ]]; then
   log "Test"
-  (cd "$ROOT" && vendor/bin/phpunit --no-progress >/dev/null) || die "Test falliti: deploy annullato."
-  ok "Test superati"
+  run_tests
 fi
 
 log "Build"

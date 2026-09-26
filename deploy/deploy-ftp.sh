@@ -29,12 +29,11 @@ done
 load_config "$CONFIG"
 : "${FTP_HOST:?}" "${FTP_USER:?}" "${FTP_PATH:?}" "${DEPLOY_URL:?}"
 [[ -n "${FTP_PASSWORD:-}" ]] || die "Impostare FTP_PASSWORD (variabile d'ambiente o deploy.env)."
-command -v lftp >/dev/null || die "Serve lftp."
+require_tools lftp curl
 
 if [[ "$SKIP_TESTS" -eq 0 ]]; then
   log "Test"
-  (cd "$ROOT" && vendor/bin/phpunit --no-progress >/dev/null) || die "Test falliti: deploy annullato."
-  ok "Test superati"
+  run_tests
 fi
 
 log "Build"
