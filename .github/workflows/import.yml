@@ -1,0 +1,21 @@
+name: Import MIMIT
+
+# Ogni giorno dopo la pubblicazione dei prezzi "alle 8".
+# L'orario di cron è UTC: 07:30 UTC = 09:30 in estate, 08:30 in inverno.
+on:
+  schedule:
+    - cron: "30 7 * * *"
+  workflow_dispatch:
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install .
+      - run: benzina-import
+        env:
+          BENZINA_DATABASE_URL: ${{ secrets.BENZINA_DATABASE_URL }}
