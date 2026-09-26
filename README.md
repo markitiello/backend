@@ -135,8 +135,16 @@ FTP_PASSWORD=... deploy/deploy-ftp.sh
 
 Carica il progetto con le dipendenze di produzione via FTP/FTPS (serve `lftp`). Elimina i file non più presenti ma non tocca mai `.env` e `var/` sul server. Non è atomico e non ha rollback: se l'hosting offre SSH, meglio `deploy.sh`.
 
+Il `.env` non fa parte della build: contiene le password, quindi non va nel repository, e un deploy non deve sovrascrivere la configurazione del server. Per caricarlo si passa esplicitamente il file:
+
+```sh
+FTP_PASSWORD=... deploy/deploy-ftp.sh --env .env.production
+```
+
+`.env`, `.env.*` (tranne `.env.example`) e `deploy/deploy.env` sono esclusi da git.
+
 **Prima volta:**
-1. Caricare a mano `.env` nella cartella del progetto.
+1. Caricare il `.env` di produzione con `--env`, oppure a mano nella cartella del progetto.
 2. Nel pannello dell'hosting, puntare il dominio su `public/`; se non si può, basta la cartella del progetto, grazie al `.htaccess` nella radice.
 3. Impostare il cron giornaliero `php .../bin/import.php`.
 

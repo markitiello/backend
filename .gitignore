@@ -2,6 +2,10 @@
 /var/*
 !/var/.gitkeep
 /.env
+/.env.*
+!/.env.example
+# Configurazione del deploy (può contenere la password FTP).
+/deploy/deploy.env
 /.phpunit.cache/
 *.db
 
