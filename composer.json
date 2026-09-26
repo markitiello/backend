@@ -17,6 +17,9 @@
         "league/openapi-psr7-validator": "^0.24"
     },
     "config": {
+        "platform": {
+            "php": "8.2.0"
+        },
         "sort-packages": true
     },
     "description": "Backend dell'app Benzina: prezzi carburanti (open data MIMIT), medie, andamenti e recensioni Google.",
