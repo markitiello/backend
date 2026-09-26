@@ -80,7 +80,7 @@ final class App
                 $e instanceof HttpNotFoundException => Problem::write($response, 404, 'Risorsa inesistente.'),
                 $e instanceof HttpMethodNotAllowedException => Problem::write($response, 405),
                 default => (static function () use ($response, $e): Response {
-                    error_log('benzina: ' . $e);
+                    ErrorLog::write('benzina: ' . $e);
                     return Problem::write($response, 500);
                 })(),
             };

@@ -154,7 +154,7 @@ FTP_PASSWORD=... deploy/deploy-ftp.sh --env .env.production
 - se si usa SQLite, i permessi di scrittura sulla cartella `var/` per l'utente del sito, da Plesk → File → Modifica permessi;
 - l'import giornaliero come "Operazione pianificata" di Plesk, che esegue `php.exe` con il percorso di `bin\import.php`.
 
-Gli errori PHP sono in Plesk → Log.
+Gli errori PHP sono in Plesk → Log. Il backend scrive gli errori nel file di log di PHP, se configurato, altrimenti in `var/log/errori.log`. Non usa lo standard error, che IIS trasformerebbe in un 500 vuoto. Durante la configurazione, `BENZINA_DEBUG=true` nel `.env` mostra nella risposta il motivo di un errore all'avvio; poi va tolto.
 
 ### Container
 
