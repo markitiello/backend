@@ -1,11 +1,13 @@
 # Benzina API — documentazione
 
-La specifica completa è in [`openapi.yaml`](openapi.yaml) / [`openapi.json`](openapi.json) (OpenAPI 3.1). Con il server avviato è consultabile anche in modo interattivo su `/docs` (Swagger UI) e `/redoc`.
+La specifica completa è in [`openapi.yaml`](openapi.yaml) (OpenAPI 3.0). Con il server avviato è consultabile anche in modo interattivo su `/docs` (Swagger UI) e scaricabile da `/openapi.yaml`.
+
+I test verificano che ogni richiesta e risposta rispetti la specifica e che ogni rotta del codice sia documentata (e viceversa).
 
 Questa pagina spiega **come usarla**: autenticazione, convenzioni, rotte ed esempi.
 
 - URL base: da definire al deploy (es. `https://api.benzina.app`)
-- Formato: JSON, UTF-8. Date `AAAA-MM-GG`, orari ISO 8601 senza fuso (ora italiana, come li pubblica il MIMIT).
+- Formato: JSON, UTF-8. Date `AAAA-MM-GG`; orari RFC 3339 in ora italiana con il fuso (`2026-09-24T19:00:00+02:00`).
 - Prezzi: euro al litro (euro al kg per il metano), con 3 decimali come nei dati MIMIT.
 
 ## Autenticazione
@@ -40,7 +42,7 @@ Gli errori seguono l'[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (`Conten
   "type": "about:blank",
   "title": "Parametri non validi",
   "status": 422,
-  "detail": "radius_km: Input should be less than or equal to 50"
+  "detail": "radius_km: deve essere al massimo 50"
 }
 ```
 
@@ -105,7 +107,7 @@ curl -H "X-API-Key: $KEY" \
       },
       "price": 1.729,
       "mode": "self",
-      "reported_at": "2026-09-24T19:00:00",
+      "reported_at": "2026-09-24T19:00:00+02:00",
       "distance_km": 0.736
     }
   ]
@@ -183,4 +185,4 @@ Media giornaliera dei distributori entro `radius_km` da `lat`/`lng`. Parametri c
 
 ## Aggiornamento dei dati
 
-I prezzi arrivano dagli [open data del MIMIT](https://www.mimit.gov.it/it/open-data/elenco-dataset/carburanti-prezzi-praticati-e-anagrafica-degli-impianti) (licenza IODL 2.0), pubblicati una volta al giorno con i prezzi validi alle 8. L'import (`benzina-import`) gira ogni mattina; `data_date` indica l'ultimo import riuscito.
+I prezzi arrivano dagli [open data del MIMIT](https://www.mimit.gov.it/it/open-data/elenco-dataset/carburanti-prezzi-praticati-e-anagrafica-degli-impianti) (licenza IODL 2.0), pubblicati una volta al giorno con i prezzi validi alle 8. L'import (`php bin/import.php`) gira ogni mattina; `data_date` indica l'ultimo import riuscito.

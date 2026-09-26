@@ -1,0 +1,39 @@
+{
+    "name": "benzina/backend",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.2",
+        "ext-json": "*",
+        "ext-pdo": "*",
+        "firebase/php-jwt": "^7",
+        "guzzlehttp/guzzle": "^7",
+        "psr/log": "^3",
+        "slim/psr7": "^1.8",
+        "slim/slim": "^4.15"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11",
+        "league/openapi-psr7-validator": "^0.24"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "description": "Backend dell'app Benzina: prezzi carburanti (open data MIMIT), medie, andamenti e recensioni Google.",
+    "autoload": {
+        "psr-4": {
+            "Benzina\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Benzina\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "lint": "find src tests bin public -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null",
+        "serve": "php -S localhost:8000 -t public",
+        "import": "php bin/import.php"
+    }
+}

@@ -1,22 +1,25 @@
-# Benzina — backend
+# Benzina — backend (PHP)
 
 API per l'app [Benzina](https://github.com/markitiello/benzina): distributori vicini dal più economico, media nazionale, andamento dei prezzi e recensioni Google.
 
 - **Documentazione API:** [`docs/API.md`](docs/API.md)
-- **Specifica OpenAPI 3.1:** [`docs/openapi.yaml`](docs/openapi.yaml) · [`docs/openapi.json`](docs/openapi.json), oppure `/docs` con il server avviato
+- **Specifica OpenAPI:** [`docs/openapi.yaml`](docs/openapi.yaml), oppure `/docs` con il server avviato
+
+> Una prima versione in Python (FastAPI) è nel branch `backend-python`.
 
 ## Come funziona
 
 ```
-MIMIT (CSV giornalieri) ──benzina-import──▶ PostgreSQL ──▶ API FastAPI ──▶ app Benzina
-                                                              │   ▲
-                                         Google Places ◀──────┘   └── Firebase App Check
+MIMIT (CSV giornalieri) ──bin/import.php──▶ database ──▶ API (Slim 4) ──▶ app Benzina
+                                                            │   ▲
+                                       Google Places ◀──────┘   └── Firebase App Check
 ```
 
-- **Import** (`src/benzina_api/importer.py`): ogni mattina scarica anagrafica e prezzi dal MIMIT, aggiorna i distributori, sostituisce i prezzi attuali, aggiunge allo storico **solo i prezzi cambiati** e calcola le medie nazionali del giorno.
-- **API** (`src/benzina_api/api.py`): FastAPI genera la specifica OpenAPI dal codice.
+- **Import** (`src/Importer.php`): ogni mattina scarica anagrafica e prezzi dal MIMIT, aggiorna i distributori, sostituisce i prezzi attuali, aggiunge allo storico **solo i prezzi cambiati** e calcola le medie nazionali del giorno. Con i file reali (~24.000 distributori, ~75.000 prezzi) impiega pochi secondi.
+- **API** (`src/App.php`, `src/Http/ApiController.php`): rotte e parametri come descritti in `docs/openapi.yaml`.
 - **Accesso**: solo l'app, con Firebase App Check; chiavi statiche per sviluppo (vedi [Autenticazione](docs/API.md#autenticazione)).
-- **Google Places**: la chiave Google resta sul server; si salva solo il `place_id`.
+- **Google Places** (`src/Google/PlacesClient.php`): la chiave Google resta sul server; si salva solo il `place_id`.
+- **Database**: SQLite, MySQL/MariaDB o PostgreSQL, tramite PDO. Le tabelle si creano da sole.
 
 | Tabella | Contenuto |
 |---|---|
@@ -27,70 +30,75 @@ MIMIT (CSV giornalieri) ──benzina-import──▶ PostgreSQL ──▶ API F
 | `imports` | Esito di ogni import |
 | `google_places` | Abbinamento distributore → luogo Google |
 
-Lo storico salva le variazioni e non una copia al giorno: circa 75.000 righe al primo import, poi solo i prezzi cambiati.
-
 ## Sviluppo
 
-Serve Python 3.11 o successivo.
+Servono PHP 8.2 o successivo (estensioni `pdo_sqlite`, oppure `pdo_mysql`/`pdo_pgsql`) e Composer.
 
 ```sh
-python -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]"
+composer install
 cp .env.example .env
 
-benzina-import                         # scarica i dati MIMIT di oggi
-uvicorn --factory benzina_api.main:app --reload
-# http://localhost:8000/docs
+php bin/import.php          # scarica i dati MIMIT di oggi
+composer serve              # http://localhost:8000/docs
 ```
 
-Senza Postgres usa SQLite (`benzina.db`). Per importare file già scaricati:
+Per importare file già scaricati:
 
 ```sh
-benzina-import --stations-file anagrafica_impianti_attivi.csv --prices-file prezzo_alle_8.csv
+php bin/import.php --stations-file=anagrafica_impianti_attivi.csv --prices-file=prezzo_alle_8.csv
 ```
 
 ### Test
 
 ```sh
-pytest                     # SQLite in memoria
-BENZINA_TEST_DATABASE_URL=postgresql://user:pass@localhost/benzina_test pytest   # PostgreSQL
-ruff check src tests scripts && ruff format --check src tests scripts
+composer lint               # sintassi PHP
+composer test               # PHPUnit su SQLite in memoria
+
+# Stessi test su PostgreSQL o MySQL/MariaDB (database svuotato a ogni test):
+BENZINA_TEST_DB_DSN="pgsql:host=localhost;dbname=benzina_test" BENZINA_TEST_DB_USER=... BENZINA_TEST_DB_PASSWORD=... composer test
+BENZINA_TEST_DB_DSN="mysql:host=localhost;dbname=benzina_test" BENZINA_TEST_DB_USER=... BENZINA_TEST_DB_PASSWORD=... composer test
 ```
 
-I test coprono lettura dei CSV MIMIT (anche righe malformate), import e storico, tutte le rotte, verifica dei token App Check (firma, scadenza, progetto, app) e integrazione Google (con risposte simulate). Un test verifica che `docs/openapi.*` sia aggiornato: dopo aver cambiato le API
+I test coprono:
 
-```sh
-python scripts/export_openapi.py
-```
+- lettura dei CSV MIMIT, anche con righe malformate;
+- import e storico;
+- tutte le rotte e gli errori;
+- verifica dei token App Check: firma, scadenza, progetto, app;
+- integrazione Google, con risposte simulate.
 
-La CI (`.github/workflows/ci.yml`) esegue lint e test su SQLite e PostgreSQL.
+Ogni richiesta e risposta dei test viene validata contro `docs/openapi.yaml`, e un test controlla che le rotte del codice e quelle della specifica coincidano. La CI (`.github/workflows/ci.yml`) li esegue con PHP 8.2 e 8.4 su SQLite, PostgreSQL e MariaDB.
 
 ## Configurazione
 
-Variabili d'ambiente (prefisso `BENZINA_`, vedi `src/benzina_api/config.py`):
+Variabili d'ambiente o file `.env` (vedi `.env.example` e `src/Config.php`):
 
 | Variabile | Default | |
 |---|---|---|
-| `DATABASE_URL` | `sqlite:///./benzina.db` | In produzione `postgresql://...` |
-| `APPCHECK_PROJECT_NUMBER` | — | Attiva la verifica App Check |
-| `APPCHECK_APP_IDS` | — | ID app Firebase ammessi, separati da virgola |
-| `API_KEYS` | — | Chiavi statiche, separate da virgola |
-| `AUTH_DISABLED` | `false` | Solo sviluppo: nessun controllo di accesso |
-| `GOOGLE_PLACES_API_KEY` | — | Attiva le recensioni Google |
-| `GOOGLE_CACHE_SECONDS` | `0` | Cache in memoria dei dettagli Google |
-| `DOCS_ENABLED` | `true` | `/docs`, `/redoc`, `/openapi.json` |
+| `BENZINA_DB_DSN` | `sqlite:var/benzina.db` | DSN PDO: `mysql:host=...;dbname=...` o `pgsql:...` |
+| `BENZINA_DB_USER`, `BENZINA_DB_PASSWORD` | — | |
+| `BENZINA_APPCHECK_PROJECT_NUMBER` | — | Attiva la verifica App Check |
+| `BENZINA_APPCHECK_APP_IDS` | — | ID app Firebase ammessi, separati da virgola |
+| `BENZINA_API_KEYS` | — | Chiavi statiche, separate da virgola |
+| `BENZINA_AUTH_DISABLED` | `false` | Solo sviluppo: nessun controllo di accesso |
+| `BENZINA_GOOGLE_PLACES_API_KEY` | — | Attiva le recensioni Google |
+| `BENZINA_DOCS_ENABLED` | `true` | `/docs` e `/openapi.yaml` |
 
-Senza `APPCHECK_PROJECT_NUMBER` né `API_KEYS` il server rifiuta tutte le richieste `/v1`.
+Senza `BENZINA_APPCHECK_PROJECT_NUMBER` né `BENZINA_API_KEYS` il server rifiuta tutte le richieste `/v1`.
 
 ## Deploy
 
-- **Database:** qualunque PostgreSQL gestito (es. Supabase, Neon). Le tabelle si creano all'avvio.
-- **API:** il `Dockerfile` avvia uvicorn sulla porta `$PORT` (es. Cloud Run, Fly.io, Render).
-- **Import giornaliero:** `.github/workflows/import.yml` gira ogni mattina; serve il secret `BENZINA_DATABASE_URL` nel repository.
+**Hosting PHP condiviso (Apache + MySQL):**
+
+1. `composer install --no-dev --optimize-autoloader` e caricare i file.
+2. La cartella pubblica del dominio deve essere `public/`; il `.htaccess` inoltra le richieste a `index.php`.
+3. Creare `.env` con i dati del database MySQL.
+4. Cron giornaliero, dopo le 8: `php /percorso/bin/import.php`.
+
+**Container:** il `Dockerfile` (PHP 8.4 + Apache) serve `public/`, adatto ad esempio a Cloud Run, Render o Fly.io. In alternativa al cron, `.github/workflows/import.yml` esegue l'import da GitHub con i secret `BENZINA_DB_DSN`, `BENZINA_DB_USER` e `BENZINA_DB_PASSWORD`.
 
 ## Da fare
 
-- [ ] Migrazioni dello schema con Alembic (oggi `create_all`).
 - [ ] Backfill dello storico dall'[archivio MIMIT](https://www.mimit.gov.it/it/open-data/elenco-dataset/carburanti-archivio-prezzi).
 - [ ] Notifiche push (soglie e preferiti) con Firebase Cloud Messaging.
 - [ ] Limite di richieste per client.

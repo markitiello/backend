@@ -1,0 +1,5 @@
+# Apache: tutte le richieste che non sono file esistenti vanno a index.php.
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]

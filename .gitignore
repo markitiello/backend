@@ -1,7 +1,6 @@
-.venv/
-__pycache__/
-*.egg-info/
-.pytest_cache/
-.ruff_cache/
+/vendor/
+/var/*
+!/var/.gitkeep
+/.env
+/.phpunit.cache/
 *.db
-.env

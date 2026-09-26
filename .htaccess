@@ -1,0 +1,6 @@
+# Per gli hosting dove la cartella pubblica non si può impostare su public/:
+# tutto viene servito da public/, il resto (.env, src, var, ...) resta inaccessibile.
+# DirectorySlash Off: /docs è la pagina della documentazione, non la cartella docs/.
+DirectorySlash Off
+RewriteEngine On
+RewriteRule ^(.*)$ public/$1 [L]
