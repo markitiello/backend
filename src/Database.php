@@ -27,8 +27,13 @@ final class Database
     {
         if (str_starts_with($config->dbDsn, 'sqlite:') && $config->dbDsn !== 'sqlite::memory:') {
             $dir = dirname(substr($config->dbDsn, strlen('sqlite:')));
-            if (!is_dir($dir)) {
-                mkdir($dir, 0775, true);
+            if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+                throw new \RuntimeException("Impossibile creare la cartella del database: $dir");
+            }
+            if (!is_writable($dir)) {
+                throw new \RuntimeException(
+                    "La cartella del database non è scrivibile dal web server: $dir"
+                );
             }
         }
         $options = str_starts_with($config->dbDsn, 'mysql:')
