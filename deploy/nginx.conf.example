@@ -1,0 +1,22 @@
+# Esempio per Nginx + PHP-FPM (deploy/deploy.sh). Adattare dominio, percorsi
+# e versione di PHP; HTTPS con certbot: certbot --nginx -d api.benzina.example
+server {
+    listen 80;
+    server_name api.benzina.example;
+    root /var/www/benzina/current/public;
+    index index.php;
+
+    location / {
+        try_files $uri /index.php$is_args$args;
+    }
+
+    location = /index.php {
+        include fastcgi_params;
+        # $realpath_root: dopo ogni deploy PHP vede subito la nuova versione.
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+    }
+
+    location ~ /\. { deny all; }
+}

@@ -95,14 +95,52 @@ Senza `BENZINA_APPCHECK_PROJECT_NUMBER` né `BENZINA_API_KEYS` il server rifiuta
 
 ## Deploy
 
-**Hosting PHP condiviso (Apache + MySQL):**
+Gli script sono in `deploy/`. La configurazione va in `deploy/deploy.env`, da creare partendo da `deploy/deploy.env.example`; il file non va nel repository. Ogni script esegue prima i test (`--skip-tests` per saltarli) e alla fine controlla che `GET /health` risponda.
 
-1. `composer install --no-dev --optimize-autoloader` e caricare i file.
-2. La cartella pubblica del dominio deve essere `public/`; il `.htaccess` inoltra le richieste a `index.php`.
-3. Creare `.env` con i dati del database MySQL.
-4. Cron giornaliero, dopo le 8: `php /percorso/bin/import.php` (importa i prezzi e invia le notifiche di tendenza).
+### Server con SSH (VPS o hosting con SSH): `deploy/deploy.sh`
 
-**Container:** il `Dockerfile` (PHP 8.4 + Apache) serve `public/`, adatto ad esempio a Cloud Run, Render o Fly.io. In alternativa al cron, `.github/workflows/import.yml` esegue l'import da GitHub con i secret `BENZINA_DB_DSN`, `BENZINA_DB_USER` e `BENZINA_DB_PASSWORD`.
+```sh
+deploy/deploy.sh              # test, build, upload, migrazione, messa online
+deploy/rollback.sh --list     # versioni sul server
+deploy/rollback.sh            # torna alla versione precedente
+```
+
+Sul server ogni versione ha la sua cartella; `current` punta a quella online e viene spostato in modo atomico, senza interruzioni:
+
+```
+/var/www/benzina/
+  releases/20260926-110445/   ultime DEPLOY_KEEP versioni (default 5)
+  shared/.env                 configurazione (creata a mano la prima volta)
+  shared/var/                 database SQLite, cache, log: scrivibile dal web server
+  current -> releases/...     il web server serve current/public
+```
+
+Se dopo il cambio di versione `/health` non risponde, il deploy torna da solo alla versione precedente e cancella quella guasta.
+
+**Prima configurazione del server:**
+1. PHP 8.2 o successivo, con l'estensione PDO del database scelto.
+2. Creare `DEPLOY_PATH/shared/.env` (da `.env.example`). La cartella `shared/var/` deve essere scrivibile dall'utente del web server.
+3. Web server che serve `DEPLOY_PATH/current/public`: esempi in `deploy/nginx.conf.example` e `deploy/apache.conf.example`.
+4. Cron dell'import giornaliero: `deploy/crontab.example`.
+
+**Da GitHub:** `.github/workflows/deploy.yml` esegue test e `deploy.sh` a ogni tag `v*` (es. `git tag v1.0.0 && git push --tags`) o a mano da Actions. I secret necessari sono elencati all'inizio del file.
+
+### Hosting condiviso con solo FTP: `deploy/deploy-ftp.sh`
+
+```sh
+FTP_PASSWORD=... deploy/deploy-ftp.sh
+```
+
+Carica il progetto con le dipendenze di produzione via FTP/FTPS (serve `lftp`). Elimina i file non più presenti ma non tocca mai `.env` e `var/` sul server. Non è atomico e non ha rollback: se l'hosting offre SSH, meglio `deploy.sh`.
+
+**Prima volta:**
+1. Caricare a mano `.env` nella cartella del progetto.
+2. Nel pannello dell'hosting, puntare il dominio su `public/`; se non si può, basta la cartella del progetto, grazie al `.htaccess` nella radice.
+3. Impostare il cron giornaliero `php .../bin/import.php`.
+
+### Container
+
+Il `Dockerfile` (PHP 8.4 + Apache) serve `public/` ed è adatto ad esempio a Cloud Run, Render o Fly.io. In alternativa al cron, `.github/workflows/import.yml` esegue l'import da GitHub; servono i secret del database, più `BENZINA_FCM_CREDENTIALS` per le notifiche.
 
 ## Da fare
 

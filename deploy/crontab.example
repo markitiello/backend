@@ -1,0 +1,6 @@
+# Import giornaliero dei prezzi MIMIT e notifiche di tendenza (crontab -e
+# dell'utente che esegue PHP). 09:15 ora italiana: i dati "alle 8" sono pubblici.
+# CRON_TZ funziona con cronie (Fedora, Arch, ...); con il cron di Debian/Ubuntu
+# toglierlo e indicare l'ora nel fuso del server.
+CRON_TZ=Europe/Rome
+15 9 * * * php /var/www/benzina/current/bin/import.php >> /var/www/benzina/shared/var/import.log 2>&1

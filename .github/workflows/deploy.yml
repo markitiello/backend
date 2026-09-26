@@ -1,0 +1,52 @@
+name: Deploy
+
+# Deploy via SSH con deploy/deploy.sh: manuale (Actions → Deploy → Run workflow)
+# o automatico a ogni tag "v*" (es. git tag v1.2.0 && git push --tags).
+#
+# Secret del repository (Settings → Secrets and variables → Actions):
+#   DEPLOY_SSH_KEY      chiave privata SSH dell'utente di deploy
+#   DEPLOY_KNOWN_HOSTS  output di: ssh-keyscan -p PORTA host
+#   DEPLOY_HOST         utente@host
+#   DEPLOY_PATH         es. /var/www/benzina
+#   DEPLOY_URL          es. https://api.benzina.example
+# Variabili facoltative: DEPLOY_PORT, DEPLOY_PHP, DEPLOY_RELOAD.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_sqlite
+      - run: composer install --no-interaction --no-progress
+      - name: Test
+        run: vendor/bin/phpunit
+      - name: Chiave SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_deploy
+          printf 'Host *\n  IdentityFile ~/.ssh/id_deploy\n' > ~/.ssh/config
+      - name: Deploy
+        run: |
+          : > /tmp/deploy.env
+          deploy/deploy.sh -c /tmp/deploy.env --skip-tests
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_PHP: ${{ vars.DEPLOY_PHP || 'php' }}
+          DEPLOY_RELOAD: ${{ vars.DEPLOY_RELOAD }}

@@ -1,0 +1,11 @@
+# Esempio per Apache con mod_php o PHP-FPM (deploy/deploy.sh).
+# Moduli: a2enmod rewrite. HTTPS con certbot: certbot --apache -d api.benzina.example
+<VirtualHost *:80>
+    ServerName api.benzina.example
+    DocumentRoot /var/www/benzina/current/public
+    <Directory /var/www/benzina>
+        Options FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
