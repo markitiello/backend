@@ -106,7 +106,7 @@ final class TrendAlerts
             }
             $this->db->execute(
                 'UPDATE trend_alerts SET sent_at = ? WHERE fuel = ? AND mode = ? AND day = ?',
-                [(new DateTimeImmutable())->format('Y-m-d H:i:s'), $alert['fuel'], $alert['mode'], $alert['day']],
+                [(new DateTimeImmutable('now', new \DateTimeZone('Europe/Rome')))->format('Y-m-d H:i:s'), $alert['fuel'], $alert['mode'], $alert['day']],
             );
             $sent++;
         }
@@ -166,6 +166,9 @@ final class TrendAlerts
                 'title' => $title,
                 'body' => $body,
                 'topic' => Topics::forTrend($fuel, $mode),
+                // Ora italiana, come salvata dopo l'invio; null se non ancora inviata.
+                'sent_at' => $r['sent_at'] === null ? null
+                    : (new DateTimeImmutable((string) $r['sent_at'], new \DateTimeZone('Europe/Rome')))->format(DATE_RFC3339),
             ];
         }, $rows);
     }

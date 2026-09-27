@@ -146,6 +146,8 @@ final class TrendTest extends TestCase
 
         $push->fail = false;
         self::assertSame(['detected' => 0, 'sent' => 1], $alerts->run('2026-09-23'));
+        $sentAt = TrendAlerts::recent($db, '2026-09-23', 1)[0]['sent_at'];
+        self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/', (string) $sentAt);
     }
 
     public function testSenzaFcmGliAvvisiRestanoConsultabili(): void
@@ -164,6 +166,7 @@ final class TrendTest extends TestCase
             array_intersect_key($body['alerts'][0], array_flip(['fuel', 'mode', 'day', 'direction', 'days', 'topic'])),
         );
         self::assertEqualsWithDelta(1.82 / 1.85 - 1, $body['alerts'][0]['change'], 1e-4);
+        self::assertNull($body['alerts'][0]['sent_at'], 'senza FCM la notifica non è partita');
 
         [, $body] = self::get($app, '/v1/trends/alerts', ['fuel' => 'diesel']);
         self::assertSame([], $body['alerts']);

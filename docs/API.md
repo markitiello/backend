@@ -185,7 +185,7 @@ Media giornaliera dei distributori entro `radius_km` da `lat`/`lng`. Parametri c
 
 ### `GET /v1/trends/alerts`
 
-Tendenze dei prezzi segnalate, dalla più recente: le stesse inviate come notifiche push (vedi sotto). Parametri: `fuel` (facoltativo, altrimenti tutti) e `days` (1–366, default 30).
+Tendenze dei prezzi segnalate, dalla più recente: le stesse inviate come notifiche push (vedi sotto). Parametri: `fuel` (facoltativo, altrimenti tutti) e `days` (1–366, default 30). `sent_at` è l'ora di invio della notifica push, `null` se non è ancora partita.
 
 ```json
 {
@@ -200,7 +200,8 @@ Tendenze dei prezzi segnalate, dalla più recente: le stesse inviate come notifi
       "price": 1.82,
       "title": "Benzina self in calo",
       "body": "Media nazionale 1,820 €/l: −1,6% in 3 giorni.",
-      "topic": "trend_benzina_self"
+      "topic": "trend_benzina_self",
+      "sent_at": "2026-09-23T09:15:04+02:00"
     }
   ]
 }

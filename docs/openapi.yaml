@@ -478,7 +478,7 @@ components:
 
     TrendAlert:
       type: object
-      required: [fuel, mode, day, direction, days, change, price, title, body, topic]
+      required: [fuel, mode, day, direction, days, change, price, title, body, topic, sent_at]
       properties:
         fuel: { $ref: "#/components/schemas/Fuel" }
         mode: { $ref: "#/components/schemas/Mode" }
@@ -493,6 +493,12 @@ components:
         title: { type: string, example: Benzina self in calo }
         body: { type: string, example: "Media nazionale 1,819 €/l: −1,2% in 3 giorni." }
         topic: { type: string, description: "Topic FCM a cui è stata inviata la notifica.", example: trend_benzina_self }
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "Quando è stata inviata la notifica push (ora italiana, con fuso); null se non ancora inviata."
+          example: "2026-09-26T09:15:04+02:00"
 
     TrendAlertList:
       type: object
