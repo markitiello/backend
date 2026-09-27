@@ -77,6 +77,10 @@ final class FcmClientTest extends TestCase
         self::assertSame('high', $message['android']['priority']);
         self::assertSame('10', $message['apns']['headers']['apns-priority']);
         self::assertSame('alert', $message['apns']['headers']['apns-push-type']);
+        // Titolo e testo espliciti per iOS e Android: li mostra il sistema con l'app chiusa.
+        self::assertSame($message['notification']['title'], $message['apns']['payload']['aps']['alert']['title']);
+        self::assertSame($message['notification']['body'], $message['apns']['payload']['aps']['alert']['body']);
+        self::assertSame($message['notification']['title'], $message['android']['notification']['title']);
 
         // 3. Il token viene riusato: nessuna nuova autenticazione.
         self::assertCount(3, $this->calls);

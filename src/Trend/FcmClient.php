@@ -87,11 +87,20 @@ final class FcmClient implements PushSender
                     // telefono è inattivo e iOS può ritardarla a lungo con l'app chiusa.
                     'android' => [
                         'priority' => 'high',
-                        'notification' => ['channel_id' => self::ANDROID_CHANNEL],
+                        'notification' => [
+                            'channel_id' => self::ANDROID_CHANNEL,
+                            'title' => $title,
+                            'body' => $body,
+                        ],
                     ],
                     'apns' => [
                         'headers' => ['apns-priority' => '10', 'apns-push-type' => 'alert'],
-                        'payload' => ['aps' => ['sound' => 'default']],
+                        // Titolo e testo anche qui: è ciò che iOS mostra con l'app in
+                        // background o chiusa.
+                        'payload' => ['aps' => [
+                            'alert' => ['title' => $title, 'body' => $body],
+                            'sound' => 'default',
+                        ]],
                     ],
                 ]],
             ]);
