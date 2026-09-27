@@ -78,7 +78,7 @@ final class Config
             mimitPricesUrl: $get('MIMIT_PRICES_URL') ?? self::MIMIT_PRICES_URL,
             averageMaxAgeDays: (int) ($get('AVERAGE_MAX_AGE_DAYS') ?? 30),
             docsEnabled: $bool('DOCS_ENABLED', true),
-            fcmCredentials: $get('FCM_CREDENTIALS'),
+            fcmCredentials: self::resolveCredentials($get('FCM_CREDENTIALS')),
             trendMinDays: (int) ($get('TREND_MIN_DAYS') ?? 3),
             trendMinChange: (float) ($get('TREND_MIN_CHANGE') ?? 0.005),
             trendCooldownDays: (int) ($get('TREND_COOLDOWN_DAYS') ?? 7),
@@ -91,10 +91,28 @@ final class Config
         if (!str_starts_with($dsn, 'sqlite:') || $dsn === 'sqlite::memory:') {
             return $dsn;
         }
-        $path = substr($dsn, strlen('sqlite:'));
+        return 'sqlite:' . self::projectPath(substr($dsn, strlen('sqlite:')));
+    }
+
+    /**
+     * BENZINA_FCM_CREDENTIALS: il JSON dell'account di servizio oppure il
+     * percorso del file, anche relativo alla cartella del progetto
+     * (es. var/firebase-service-account.json).
+     */
+    private static function resolveCredentials(?string $value): ?string
+    {
+        if ($value === null || str_starts_with(ltrim($value), '{')) {
+            return $value;
+        }
+        return self::projectPath($value);
+    }
+
+    /** Percorso relativo alla cartella del progetto; quelli assoluti restano com'erano. */
+    private static function projectPath(string $path): string
+    {
         // Assoluto: /percorso (Linux, macOS) oppure C:\percorso o \\server (Windows).
         $absolute = preg_match('#^(/|\\\\|[A-Za-z]:[\\\\/])#', $path) === 1;
-        return $absolute ? $dsn : 'sqlite:' . dirname(__DIR__) . '/' . $path;
+        return $absolute ? $path : dirname(__DIR__) . '/' . $path;
     }
 
     /**

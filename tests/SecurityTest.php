@@ -125,6 +125,17 @@ final class SecurityTest extends TestCase
         $default = Config::fromEnv([]);
         self::assertSame('sqlite:' . dirname(__DIR__) . '/var/benzina.db', $default->dbDsn);
 
+        // Credenziali FCM: percorso relativo alla cartella del progetto, oppure il JSON.
+        self::assertSame(
+            dirname(__DIR__) . '/var/firebase.json',
+            Config::fromEnv(['BENZINA_FCM_CREDENTIALS' => 'var/firebase.json'])->fcmCredentials,
+        );
+        self::assertSame(
+            'E:\\sito\\var\\firebase.json',
+            Config::fromEnv(['BENZINA_FCM_CREDENTIALS' => 'E:\\sito\\var\\firebase.json'])->fcmCredentials,
+        );
+        self::assertSame('{"type":"service_account"}', Config::fromEnv(['BENZINA_FCM_CREDENTIALS' => '{"type":"service_account"}'])->fcmCredentials);
+
         // I percorsi assoluti restano com'erano, anche quelli di Windows.
         foreach (['/srv/benzina.db', 'C:\\dati\\benzina.db', 'D:/dati/benzina.db', '\\\\nas\\benzina.db'] as $path) {
             self::assertSame('sqlite:' . $path, Config::fromEnv(['BENZINA_DB_DSN' => 'sqlite:' . $path])->dbDsn);

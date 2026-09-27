@@ -226,7 +226,7 @@ Contenuto del messaggio:
 - `data`: `{"type": "trend", "fuel": "benzina", "mode": "self", "direction": "down", "day": "2026-09-23"}`, per aprire la schermata Andamento;
 - Android: canale di notifica `price_trends`; iOS: suono predefinito, priorità normale.
 
-Per attivarle sul server: `BENZINA_FCM_CREDENTIALS` con il JSON di un service account Firebase (Console Firebase → Impostazioni progetto → Account di servizio → Genera nuova chiave privata). Verifica con:
+Per attivarle sul server: `BENZINA_FCM_CREDENTIALS` con il JSON di un service account Firebase (Console Firebase → Impostazioni progetto → Account di servizio → Genera nuova chiave privata), oppure con il percorso del file. Il percorso può essere relativo alla cartella del progetto, ad esempio `var/firebase-service-account.json`. Verifica con:
 
 ```sh
 php bin/push-test.php trend_benzina_self

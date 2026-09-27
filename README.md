@@ -85,7 +85,7 @@ Variabili d'ambiente o file `.env` (vedi `.env.example` e `src/Config.php`):
 | `BENZINA_API_KEYS` | — | Chiavi statiche, separate da virgola |
 | `BENZINA_AUTH_DISABLED` | `false` | Solo sviluppo: nessun controllo di accesso |
 | `BENZINA_GOOGLE_PLACES_API_KEY` | — | Attiva le recensioni Google |
-| `BENZINA_FCM_CREDENTIALS` | — | Service account Firebase: attiva le notifiche push |
+| `BENZINA_FCM_CREDENTIALS` | — | Service account Firebase (JSON o percorso del file, anche relativo al progetto, es. `var/firebase-service-account.json`): attiva le notifiche push |
 | `BENZINA_TREND_MIN_DAYS` | `3` | Giorni consecutivi per una tendenza |
 | `BENZINA_TREND_MIN_CHANGE` | `0.005` | Variazione minima (0,5%) |
 | `BENZINA_TREND_COOLDOWN_DAYS` | `7` | Pausa tra avvisi nella stessa direzione |
