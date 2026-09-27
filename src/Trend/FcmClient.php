@@ -82,13 +82,15 @@ final class FcmClient implements PushSender
                     'topic' => $topic,
                     'notification' => ['title' => $title, 'body' => $body],
                     'data' => $data,
+                    // Priorità alta: è una notifica visibile all'utente (come consigliato
+                    // da Google). Con priorità normale Android la rimanda quando il
+                    // telefono è inattivo e iOS può ritardarla a lungo con l'app chiusa.
                     'android' => [
-                        'priority' => 'normal',
+                        'priority' => 'high',
                         'notification' => ['channel_id' => self::ANDROID_CHANNEL],
                     ],
                     'apns' => [
-                        // 5 = consegna non urgente: iOS può raggrupparla per risparmiare batteria.
-                        'headers' => ['apns-priority' => '5'],
+                        'headers' => ['apns-priority' => '10', 'apns-push-type' => 'alert'],
                         'payload' => ['aps' => ['sound' => 'default']],
                     ],
                 ]],

@@ -73,6 +73,10 @@ final class FcmClientTest extends TestCase
         self::assertSame(['type' => 'trend'], $message['data']);
         self::assertSame('price_trends', $message['android']['notification']['channel_id']);
         self::assertSame('default', $message['apns']['payload']['aps']['sound']);
+        // Notifica visibile: priorità alta, altrimenti con l'app chiusa arriva in ritardo.
+        self::assertSame('high', $message['android']['priority']);
+        self::assertSame('10', $message['apns']['headers']['apns-priority']);
+        self::assertSame('alert', $message['apns']['headers']['apns-push-type']);
 
         // 3. Il token viene riusato: nessuna nuova autenticazione.
         self::assertCount(3, $this->calls);
