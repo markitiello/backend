@@ -112,7 +112,7 @@ final class Importer
      * @param list<PriceRow> $prices
      * @return list<PriceRow>
      */
-    private static function latestPerKey(array $prices): array
+    public static function latestPerKey(array $prices): array
     {
         $latest = [];
         foreach ($prices as $p) {

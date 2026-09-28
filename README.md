@@ -50,6 +50,23 @@ Per importare file già scaricati:
 php bin/import.php --stations-file=anagrafica_impianti_attivi.csv --prices-file=prezzo_alle_8.csv
 ```
 
+### Storico dei giorni passati
+
+L'[archivio MIMIT](https://www.mimit.gov.it/it/open-data/elenco-dataset/carburanti-archivio-prezzi) pubblica i prezzi dei giorni passati in `.tar.gz` trimestrali, con dentro un file `prezzo_alle_8-AAAAMMGG.csv` per giorno. Per importarli:
+
+```sh
+php bin/backfill.php var/storico/2026-T2.tar.gz
+php bin/backfill.php var/storico/ --from=2026-04-01 --to=2026-06-30   # cartella con archivi o CSV
+```
+
+Cosa fa (`src/Backfill.php`):
+- **Storico:** aggiunge a `price_changes` solo le comunicazioni nuove dei distributori in anagrafica.
+- **Media nazionale:** calcola quella di ogni giorno su tutti i distributori del file.
+- **Cosa non tocca:** prezzi attuali, anagrafica e import giornalieri; non invia notifiche.
+- **Giorni già presenti:** li salta, quindi si può rilanciare senza problemi. `--force` rifà solo i giorni dello storico.
+
+Consumi misurati: circa 0,6 secondi e meno di 80 MB di memoria per giorno. Su un hosting condiviso conviene caricare gli archivi in `var/storico/`, che il deploy non tocca, e lanciarli uno alla volta, ad esempio come operazione pianificata di Plesk con lo script `bin/backfill.php` e l'archivio come argomento.
+
 ### Test
 
 ```sh
@@ -162,7 +179,7 @@ Il `Dockerfile` (PHP 8.4 + Apache) serve `public/` ed è adatto ad esempio a Clo
 
 ## Da fare
 
-- [ ] Backfill dello storico dall'[archivio MIMIT](https://www.mimit.gov.it/it/open-data/elenco-dataset/carburanti-archivio-prezzi).
+- [x] Storico dall'archivio MIMIT (`bin/backfill.php`). Il trimestre in corso esce solo a trimestre concluso: fino ad allora nei grafici resta un periodo senza dati.
 - [ ] Notifiche personali (soglia di prezzo, preferiti, tendenza della propria zona): richiedono di registrare i dispositivi.
 - [ ] Limite di richieste per client.
 
