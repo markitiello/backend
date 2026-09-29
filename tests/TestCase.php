@@ -8,6 +8,7 @@ use Benzina\App;
 use Benzina\Config;
 use Benzina\Database;
 use Benzina\Google\PlacesClient;
+use Benzina\Live\LivePrices;
 use Benzina\Importer;
 use Benzina\Security\Authenticator;
 use League\OpenAPIValidation\PSR7\ResponseValidator;
@@ -75,9 +76,10 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
         ?Config $config = null,
         ?Authenticator $auth = null,
         ?PlacesClient $google = null,
+        ?LivePrices $live = null,
     ): SlimApp {
         $config ??= self::config();
-        return App::create($config, $db ?? self::importedDatabase(), $auth, $google);
+        return App::create($config, $db ?? self::importedDatabase(), $auth, $google, $live);
     }
 
     /**

@@ -48,6 +48,9 @@ final class Config
         public readonly float $trendMinChange = 0.005,
         // Dopo un avviso, giorni senza un altro avviso nella stessa direzione.
         public readonly int $trendCooldownDays = 7,
+        // Prezzi aggiornati da Osservaprezzi per le ricerche (vedi Live\LivePrices).
+        public readonly bool $livePrices = false,
+        public readonly int $liveTtlMinutes = 10,
     ) {
     }
 
@@ -82,6 +85,8 @@ final class Config
             trendMinDays: (int) ($get('TREND_MIN_DAYS') ?? 3),
             trendMinChange: (float) ($get('TREND_MIN_CHANGE') ?? 0.005),
             trendCooldownDays: (int) ($get('TREND_COOLDOWN_DAYS') ?? 7),
+            livePrices: filter_var($get('LIVE_PRICES') ?? false, FILTER_VALIDATE_BOOL),
+            liveTtlMinutes: max(1, (int) ($get('LIVE_TTL_MINUTES') ?? 10)),
         );
     }
 

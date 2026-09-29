@@ -8,6 +8,8 @@ use Benzina\Google\PlacesClient;
 use Benzina\Http\ApiController;
 use Benzina\Http\HttpProblem;
 use Benzina\Http\Problem;
+use Benzina\Live\LivePrices;
+use Benzina\Live\OsservaprezziClient;
 use Benzina\Security\Authenticator;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -28,6 +30,7 @@ final class App
         ?Database $db = null,
         ?Authenticator $authenticator = null,
         ?PlacesClient $google = null,
+        ?LivePrices $live = null,
     ): SlimApp {
         $db ??= Database::connect($config);
         $db->createSchema();
@@ -35,7 +38,10 @@ final class App
         if ($google === null && $config->googlePlacesApiKey !== null) {
             $google = new PlacesClient($config->googlePlacesApiKey, rematchDays: $config->googleRematchDays);
         }
-        $api = new ApiController($db, new PriceService($db), $google);
+        if ($live === null && $config->livePrices) {
+            $live = new LivePrices($db, new OsservaprezziClient(), $config->liveTtlMinutes);
+        }
+        $api = new ApiController($db, new PriceService($db), $google, $live);
 
         $app = AppFactory::create();
         $app->addRoutingMiddleware();

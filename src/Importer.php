@@ -79,9 +79,23 @@ final class Importer
                 static fn (PriceRow $p): array => [$p->stationId, $p->fuel->value, (int) $p->isSelf, $p->price, $p->reportedAt],
                 $prices,
             );
+            // Prezzi comunicati dopo quelli del file (da Osservaprezzi, vedi
+            // Live\LivePrices): restano quelli, non si torna indietro.
+            $newer = [];
+            foreach ($this->db->all('SELECT station_id, fuel, is_self, price, reported_at FROM current_prices') as $c) {
+                $newer[$c['station_id'] . '|' . $c['fuel'] . '|' . (int) $c['is_self']] = $c;
+            }
+            $current = [];
+            foreach ($rows as $row) {
+                $c = $newer[$row[0] . '|' . $row[1] . '|' . $row[2]] ?? null;
+                $current[] = $c !== null && substr((string) $c['reported_at'], 0, 19) > $row[4]
+                    ? [$row[0], $row[1], $row[2], (float) $c['price'], substr((string) $c['reported_at'], 0, 19)]
+                    : $row;
+            }
+            unset($newer);
             $columns = ['station_id', 'fuel', 'is_self', 'price', 'reported_at'];
             $this->db->execute('DELETE FROM current_prices');
-            $this->db->insertMany('current_prices', $columns, $rows);
+            $this->db->insertMany('current_prices', $columns, $current);
             $newChanges = $this->db->insertMany('price_changes', $columns, $rows, ignoreDuplicates: true);
 
             $this->db->execute('DELETE FROM national_averages WHERE day = ?', [$day]);

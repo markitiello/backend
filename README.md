@@ -50,6 +50,19 @@ Per importare file già scaricati:
 php bin/import.php --stations-file=anagrafica_impianti_attivi.csv --prices-file=prezzo_alle_8.csv
 ```
 
+### Prezzi aggiornati durante il giorno (Osservaprezzi)
+
+Il file open data è quello delle 8: i prezzi cambiati dopo compaiono il giorno seguente. Con `BENZINA_LIVE_PRICES=true` il backend li prende dall'API del sito [Osservaprezzi Carburanti](https://carburanti.mise.gov.it), che mostra le comunicazioni dei gestori a pochi minuti di distanza (`src/Live/`):
+
+- **Quando:**
+  - `GET /v1/stations/nearby` chiede i distributori della zona (`POST /ospzApi/search/zone`);
+  - `GET /v1/stations/{id}` chiede il singolo distributore (`GET /ospzApi/registry/servicearea/{id}`), che ha l'ora di ogni prezzo.
+- **Frequenza:** al massimo una richiesta ogni `BENZINA_LIVE_TTL_MINUTES` per zona (celle di circa 2 km) o per distributore, qualunque sia il numero di utenti.
+- **Cosa si salva:** i prezzi attuali e lo storico, solo se il prezzo è cambiato e la comunicazione è più recente. L'import delle 8 non li riporta indietro.
+- **Se l'API non risponde o risponde in modo inatteso:** l'errore va nel log, si resta sui dati del file e per 5 minuti non si riprova.
+
+Non è un'API ufficiale né documentata: può cambiare o essere bloccata. Prima di attivarla, verificare che il server la raggiunga con `php bin/osservaprezzi-test.php`.
+
 ### Storico dei giorni passati
 
 L'[archivio MIMIT](https://www.mimit.gov.it/it/open-data/elenco-dataset/carburanti-archivio-prezzi) pubblica i prezzi dei giorni passati in `.tar.gz` trimestrali, con dentro un file `prezzo_alle_8-AAAAMMGG.csv` per giorno. Per importarli:
@@ -106,6 +119,8 @@ Variabili d'ambiente o file `.env` (vedi `.env.example` e `src/Config.php`):
 | `BENZINA_TREND_MIN_DAYS` | `3` | Giorni consecutivi per una tendenza |
 | `BENZINA_TREND_MIN_CHANGE` | `0.005` | Variazione minima (0,5%) |
 | `BENZINA_TREND_COOLDOWN_DAYS` | `7` | Pausa tra avvisi nella stessa direzione |
+| `BENZINA_LIVE_PRICES` | `false` | Prezzi aggiornati da Osservaprezzi (vedi sotto) |
+| `BENZINA_LIVE_TTL_MINUTES` | `10` | Ogni quanto richiederli, per zona o distributore |
 | `BENZINA_DOCS_ENABLED` | `true` | `/docs` e `/openapi.yaml` |
 
 Senza `BENZINA_APPCHECK_PROJECT_NUMBER` né `BENZINA_API_KEYS` il server rifiuta tutte le richieste `/v1`.

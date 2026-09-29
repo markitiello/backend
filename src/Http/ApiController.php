@@ -8,6 +8,7 @@ use Benzina\Database;
 use Benzina\Fuel;
 use Benzina\Google\GooglePlacesException;
 use Benzina\Google\PlacesClient;
+use Benzina\Live\LivePrices;
 use Benzina\Mode;
 use Benzina\PriceService;
 use Benzina\Trend\TrendAlerts;
@@ -21,6 +22,7 @@ final class ApiController
         private readonly Database $db,
         private readonly PriceService $prices,
         private readonly ?PlacesClient $google,
+        private readonly ?LivePrices $live = null,
     ) {
     }
 
@@ -69,6 +71,7 @@ final class ApiController
         [$fuel, $mode] = self::fuelAndMode($q);
         $limit = $q->int('limit', 1, 200, 50);
         $q->check();
+        $this->live?->refresh($lat, $lng, $radius);
         return self::json($response, $this->prices->nearby($lat, $lng, $radius, $fuel, $mode, $limit));
     }
 
@@ -92,7 +95,9 @@ final class ApiController
     /** @param array<string, string> $args */
     public function station(Request $request, Response $response, array $args): Response
     {
-        return self::json($response, $this->prices->stationsById([$this->stationId($args)])[0]);
+        $id = $this->stationId($args);
+        $this->live?->refreshStation($id);
+        return self::json($response, $this->prices->stationsById([$id])[0]);
     }
 
     /** @param array<string, string> $args */

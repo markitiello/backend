@@ -96,6 +96,10 @@ final class Database
                 sent_at $timestamp NULL,
                 PRIMARY KEY (fuel, mode, day)
             )$engine",
+            // Ultima richiesta a Osservaprezzi per zona (vedi Live\LivePrices).
+            "CREATE TABLE IF NOT EXISTS live_fetches (
+                cell {$text(40)} PRIMARY KEY, fetched_at $timestamp NOT NULL
+            )$engine",
             // Abbinamento con Google: si salva solo il place_id (NULL = cercato, non trovato).
             "CREATE TABLE IF NOT EXISTS google_places (
                 station_id INTEGER PRIMARY KEY, place_id {$text(300)} NULL, checked_at $timestamp NOT NULL
@@ -128,7 +132,7 @@ final class Database
 
     public function dropSchema(): void
     {
-        foreach (['stations', 'current_prices', 'price_changes', 'national_averages', 'imports', 'google_places', 'trend_alerts'] as $t) {
+        foreach (['stations', 'current_prices', 'price_changes', 'national_averages', 'imports', 'google_places', 'trend_alerts', 'live_fetches'] as $t) {
             $this->pdo->exec("DROP TABLE IF EXISTS $t");
         }
     }
