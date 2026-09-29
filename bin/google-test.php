@@ -6,7 +6,9 @@ declare(strict_types=1);
  * Prova dell'integrazione con Google Places per un distributore: mostra la
  * ricerca, i luoghi trovati con la distanza e le recensioni. Non salva nulla.
  *
- *   php bin/google-test.php ID_DISTRIBUTORE
+ *   php bin/google-test.php [ID_DISTRIBUTORE]
+ *
+ * Senza id sceglie un distributore qualsiasi del database.
  */
 
 use Benzina\Config;
@@ -17,17 +19,30 @@ use GuzzleHttp\Client;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$id = (int) ($argv[1] ?? 0);
+$id = isset($argv[1]) ? (int) $argv[1] : null;
 $config = Config::fromEnv(Config::loadEnv(__DIR__ . '/../.env'));
 if ($config->googlePlacesApiKey === null) {
     fwrite(STDOUT, "BENZINA_GOOGLE_PLACES_API_KEY non è impostata nel .env: le recensioni sono disattivate (503).\n");
     exit(1);
 }
 $db = Database::connect($config);
-$station = $db->one('SELECT * FROM stations WHERE id = ?', [$id]);
-if ($station === null) {
-    fwrite(STDOUT, "Uso: php bin/google-test.php ID_DISTRIBUTORE (id MIMIT presente nel database)\n");
-    exit(1);
+if ($id === null) {
+    // Senza argomento: un distributore qualsiasi con dei prezzi.
+    $station = $db->one('SELECT s.* FROM stations s JOIN current_prices p ON p.station_id = s.id ORDER BY s.id LIMIT 1');
+    if ($station === null) {
+        fwrite(STDOUT, "Nessun distributore nel database: lanciare prima l'import (bin/import.php).\n");
+        exit(1);
+    }
+    $id = (int) $station['id'];
+    fwrite(STDOUT, "Nessun id indicato: provo con il distributore $id (per sceglierne uno: php bin/google-test.php ID).\n");
+} else {
+    $station = $db->one('SELECT * FROM stations WHERE id = ?', [$id]);
+    if ($station === null) {
+        $count = (int) $db->one('SELECT COUNT(*) AS n FROM stations')['n'];
+        fwrite(STDOUT, "Il distributore $id non è nel database ($count distributori importati). "
+            . "Usare un idImpianto del MIMIT presente, oppure lanciare lo script senza argomenti.\n");
+        exit(1);
+    }
 }
 $query = "{$station['brand']} {$station['address']} {$station['city']}";
 fwrite(STDOUT, "Distributore $id: {$station['name']}, $query ({$station['lat']}, {$station['lng']})\n\n");
