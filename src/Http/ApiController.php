@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Benzina\Http;
 
 use Benzina\Database;
+use Benzina\ErrorLog;
 use Benzina\Fuel;
 use Benzina\Google\GooglePlacesException;
 use Benzina\Google\PlacesClient;
@@ -127,6 +128,9 @@ final class ApiController
             }
             return self::json($response, $this->google->details($placeId));
         } catch (GooglePlacesException $e) {
+            // Il motivo (chiave non valida, API non abilitata, fatturazione...) va
+            // nel log; per capirlo: php bin/google-test.php ID_DISTRIBUTORE.
+            ErrorLog::write('benzina: Google Places: ' . $e->getMessage());
             throw new HttpProblem(502, 'Google Places non disponibile.');
         }
     }
