@@ -384,6 +384,37 @@ components:
               type: array
               description: Prezzi dell'ultimo aggiornamento.
               items: { $ref: "#/components/schemas/Price" }
+            details:
+              allOf:
+                - $ref: "#/components/schemas/StationDetails"
+              nullable: true
+              description: |
+                Orari, servizi e contatti da Osservaprezzi (con BENZINA_LIVE_PRICES
+                attivo, dopo la prima apertura del dettaglio). `null` se non ancora noti.
+
+    StationDetails:
+      type: object
+      required: [phone, email, website, services, opening_hours]
+      properties:
+        phone: { type: string, nullable: true, example: 366 6286969 }
+        email: { type: string, nullable: true }
+        website: { type: string, nullable: true }
+        services:
+          type: array
+          description: Come li indica il gestore, es. Bancomat, Food&Beverage, Wi-Fi.
+          items: { type: string }
+          example: [Bancomat, Food&Beverage, Servizi per disabili]
+        opening_hours:
+          type: array
+          description: |
+            Solo i giorni comunicati. `day`: 1 lunedì … 7 domenica, 8 festivi.
+            `hours`: "07:00–18:30", "08:00–12:30, 15:00–19:00", "24 ore" o "Chiuso".
+          items:
+            type: object
+            required: [day, hours]
+            properties:
+              day: { type: integer, minimum: 1, maximum: 8 }
+              hours: { type: string, example: 07:00–18:30 }
 
     Offer:
       type: object

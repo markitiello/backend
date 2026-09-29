@@ -96,6 +96,10 @@ final class Database
                 sent_at $timestamp NULL,
                 PRIMARY KEY (fuel, mode, day)
             )$engine",
+            // Orari, servizi e contatti da Osservaprezzi (JSON nella forma di StationDetails).
+            "CREATE TABLE IF NOT EXISTS station_details (
+                station_id INTEGER PRIMARY KEY, details TEXT NOT NULL, fetched_at $timestamp NOT NULL
+            )$engine",
             // Ultima richiesta a Osservaprezzi per zona (vedi Live\LivePrices).
             "CREATE TABLE IF NOT EXISTS live_fetches (
                 cell {$text(40)} PRIMARY KEY, fetched_at $timestamp NOT NULL
@@ -132,7 +136,7 @@ final class Database
 
     public function dropSchema(): void
     {
-        foreach (['stations', 'current_prices', 'price_changes', 'national_averages', 'imports', 'google_places', 'trend_alerts', 'live_fetches'] as $t) {
+        foreach (['stations', 'current_prices', 'price_changes', 'national_averages', 'imports', 'google_places', 'trend_alerts', 'live_fetches', 'station_details'] as $t) {
             $this->pdo->exec("DROP TABLE IF EXISTS $t");
         }
     }

@@ -55,9 +55,10 @@ final class OsservaprezziClient
 
     /**
      * Prezzi di un distributore, ognuno con la propria ora di comunicazione
-     * (più precisa della ricerca per zona).
+     * (più precisa della ricerca per zona), e i suoi dettagli: orari, servizi,
+     * contatti.
      *
-     * @return list<PriceRow>
+     * @return array{prices: list<PriceRow>, details: array<string, mixed>}
      * @throws OsservaprezziException
      */
     public function station(int $id): array
@@ -66,7 +67,55 @@ final class OsservaprezziClient
         if (($json['id'] ?? null) !== $id || !is_array($json['fuels'] ?? null)) {
             throw new OsservaprezziException('Osservaprezzi: risposta inattesa');
         }
-        return self::parse([$json]);
+        return ['prices' => self::parse([$json]), 'details' => self::details($json)];
+    }
+
+    /**
+     * Dettagli nella forma dello schema StationDetails: telefono, email, sito,
+     * servizi e orari. Negli orari giornoSettimanaId va da 1 (lunedì) a 7
+     * (domenica); 8 sono i festivi.
+     *
+     * @param array<mixed> $json
+     * @return array<string, mixed>
+     */
+    public static function details(array $json): array
+    {
+        $text = static fn (mixed $v): ?string => is_string($v) && trim($v) !== '' ? trim($v) : null;
+        $services = [];
+        foreach (is_array($json['services'] ?? null) ? $json['services'] : [] as $service) {
+            if (is_array($service) && ($name = $text($service['description'] ?? null)) !== null) {
+                $services[] = $name;
+            }
+        }
+        $hours = [];
+        foreach (is_array($json['orariapertura'] ?? null) ? $json['orariapertura'] : [] as $day) {
+            if (!is_array($day) || !is_int($day['giornoSettimanaId'] ?? null) || ($day['flagNonComunicato'] ?? false) === true) {
+                continue;
+            }
+            $range = static fn (mixed $from, mixed $to): ?string =>
+                $text($from) !== null && $text($to) !== null ? $text($from) . '–' . $text($to) : null;
+            $value = match (true) {
+                ($day['flagChiusura'] ?? false) === true => 'Chiuso',
+                ($day['flagH24'] ?? false) === true => '24 ore',
+                ($day['flagOrarioContinuato'] ?? false) === true
+                    => $range($day['oraAperturaOrarioContinuato'] ?? null, $day['oraChiusuraOrarioContinuato'] ?? null),
+                default => implode(', ', array_filter([
+                    $range($day['oraAperturaMattina'] ?? null, $day['oraChiusuraMattina'] ?? null),
+                    $range($day['oraAperturaPomeriggio'] ?? null, $day['oraChiusuraPomeriggio'] ?? null),
+                ])) ?: null,
+            };
+            if ($value !== null) {
+                $hours[] = ['day' => $day['giornoSettimanaId'], 'hours' => $value];
+            }
+        }
+        usort($hours, static fn (array $a, array $b): int => $a['day'] <=> $b['day']);
+        return [
+            'phone' => $text($json['phoneNumber'] ?? null),
+            'email' => $text($json['email'] ?? null),
+            'website' => $text($json['website'] ?? null),
+            'services' => $services,
+            'opening_hours' => $hours,
+        ];
     }
 
     /**

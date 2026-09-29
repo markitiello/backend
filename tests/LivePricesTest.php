@@ -168,7 +168,24 @@ final class LivePricesTest extends TestCase
                 ['id' => 3, 'price' => 2.4, 'name' => 'HVOlution', 'fuelId' => 394, 'isSelf' => false, 'serviceAreaId' => 1001,
                     'insertDate' => '2026-09-25T08:36:20Z', 'validityDate' => '2026-09-25T08:36:20Z'],
             ],
-            'orariapertura' => [],
+            'phoneNumber' => '366 6286969',
+            'email' => 'gaspetrolservice@libero.it',
+            'website' => '',
+            'services' => [
+                ['id' => '6', 'description' => 'Bancomat'],
+                ['id' => '1', 'description' => 'Food&Beverage'],
+                ['id' => '8', 'description' => 'Wi-Fi'],
+            ],
+            'orariapertura' => [
+                self::day(1, continuous: ['07:00', '18:30']),
+                self::day(6, continuous: ['07:30', '12:00']),
+                self::day(7, closed: true),
+                self::day(3, morning: ['08:00', '12:30'], afternoon: ['15:00', '19:00']),
+                self::day(4, h24: true),
+                self::day(5, notCommunicated: true),
+                // Festivi: nessun orario indicato.
+                self::day(8),
+            ],
         ])));
         $app = self::app($db, live: $this->live($db));
 
@@ -184,6 +201,52 @@ final class LivePricesTest extends TestCase
         // Ore UTC convertite in ora italiana, una per carburante.
         self::assertSame('2026-09-25T10:36:21+02:00', $prices['benzina|self']['reported_at']);
         self::assertSame('2026-09-25T08:02:37+02:00', $prices['gpl|servito']['reported_at']);
+
+        self::assertSame([
+            'phone' => '366 6286969',
+            'email' => 'gaspetrolservice@libero.it',
+            'website' => null,
+            'services' => ['Bancomat', 'Food&Beverage', 'Wi-Fi'],
+            'opening_hours' => [
+                ['day' => 1, 'hours' => '07:00–18:30'],
+                ['day' => 3, 'hours' => '08:00–12:30, 15:00–19:00'],
+                ['day' => 4, 'hours' => '24 ore'],
+                ['day' => 6, 'hours' => '07:30–12:00'],
+                ['day' => 7, 'hours' => 'Chiuso'],
+            ],
+        ], $body['details']);
+        // Anche nella lista dei preferiti.
+        [, $list] = self::get($app, '/v1/stations', ['ids' => '1001,1002']);
+        self::assertSame('366 6286969', $list['stations'][0]['details']['phone']);
+        self::assertNull($list['stations'][1]['details']);
+    }
+
+    /** Un giorno di "orariapertura" come nella risposta di Osservaprezzi. */
+    private static function day(
+        int $id,
+        ?array $continuous = null,
+        ?array $morning = null,
+        ?array $afternoon = null,
+        bool $closed = false,
+        bool $h24 = false,
+        bool $notCommunicated = false,
+    ): array {
+        return [
+            'orariAperturaId' => 80000 + $id,
+            'giornoSettimanaId' => $id,
+            'oraAperturaMattina' => $morning[0] ?? null,
+            'oraChiusuraMattina' => $morning[1] ?? null,
+            'oraAperturaPomeriggio' => $afternoon[0] ?? null,
+            'oraChiusuraPomeriggio' => $afternoon[1] ?? null,
+            'flagOrarioContinuato' => $continuous !== null,
+            'oraAperturaOrarioContinuato' => $continuous[0] ?? null,
+            'oraChiusuraOrarioContinuato' => $continuous[1] ?? null,
+            'flagH24' => $h24,
+            'flagChiusura' => $closed,
+            'flagNonComunicato' => $notCommunicated,
+            'flagServito' => false,
+            'flagSelf' => true,
+        ];
     }
 
     public function testLImportDelleOttoNonCancellaIPrezziPiuRecenti(): void

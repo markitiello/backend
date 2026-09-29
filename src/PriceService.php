@@ -151,6 +151,13 @@ final class PriceService
                 'reported_at' => self::isoDateTime((string) $p['reported_at']),
             ];
         }
+        $details = [];
+        foreach ($this->db->all("SELECT station_id, details FROM station_details WHERE station_id IN ($in)", $ids) as $d) {
+            $decoded = json_decode((string) $d['details'], true);
+            if (is_array($decoded)) {
+                $details[(int) $d['station_id']] = $decoded;
+            }
+        }
         $result = [];
         foreach ($ids as $id) {
             if (!isset($stations[$id])) {
@@ -161,6 +168,8 @@ final class PriceService
                 'operator' => $row['operator'],
                 'kind' => $row['kind'],
                 'prices' => $prices[$id] ?? [],
+                // Orari, servizi e contatti: solo se già letti da Osservaprezzi.
+                'details' => $details[$id] ?? null,
             ];
         }
         return $result;

@@ -65,13 +65,19 @@ final class LivePrices
             return 0;
         }
         try {
-            $rows = $this->client->station($id);
+            $station = $this->client->station($id);
         } catch (OsservaprezziException $e) {
             ErrorLog::write('benzina: ' . $e->getMessage());
             $this->mark(self::ERROR_KEY, $now);
             return 0;
         }
-        $updated = $this->store($rows);
+        $updated = $this->store($station['prices']);
+        $this->db->transaction(function () use ($id, $station, $now): void {
+            $this->db->execute('DELETE FROM station_details WHERE station_id = ?', [$id]);
+            $this->db->insertMany('station_details', ['station_id', 'details', 'fetched_at'], [
+                [$id, json_encode($station['details'], JSON_UNESCAPED_UNICODE), $now->format('Y-m-d H:i:s')],
+            ]);
+        });
         $this->mark($key, $now);
         return $updated;
     }
