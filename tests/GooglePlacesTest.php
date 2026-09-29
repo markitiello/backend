@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Benzina\Tests;
 
 use Benzina\Database;
+use Benzina\Google\GoogleBudget;
 use Benzina\Google\PlacesClient;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
@@ -51,7 +52,7 @@ final class GooglePlacesTest extends TestCase
      * @param list<array<string, mixed>>|null $places
      * @return \Slim\App<null>
      */
-    private function appWithGoogle(?array $places = null, int $detailsStatus = 200): \Slim\App
+    private function appWithGoogle(?array $places = null, int $detailsStatus = 200, ?GoogleBudget $budget = null): \Slim\App
     {
         $places ??= [['id' => 'place-lontano', 'location' => self::FAR], ['id' => 'place-q8', 'location' => self::NEAR]];
         $handler = static function (RequestInterface $request) use ($places, $detailsStatus): Response {
@@ -65,7 +66,7 @@ final class GooglePlacesTest extends TestCase
         };
         $stack = HandlerStack::create(new MockHandler(array_fill(0, 10, $handler)));
         $stack->push(Middleware::history($this->calls));
-        $google = new PlacesClient('google-key', new Client(['handler' => $stack]));
+        $google = new PlacesClient('google-key', new Client(['handler' => $stack]), budget: $budget);
         return self::app($this->db, google: $google);
     }
 
@@ -78,22 +79,18 @@ final class GooglePlacesTest extends TestCase
         );
     }
 
-    public function testAbbinaIlLuogoPiuVicinoERestituisceLeRecensioni(): void
+    public function testAbbinaIlLuogoPiuVicinoERestituisceLaValutazione(): void
     {
         $app = $this->appWithGoogle();
         [$status, $body] = self::get($app, '/v1/stations/1001/google-rating');
         self::assertSame(200, $status);
         self::assertSame('place-q8', $body['place_id']);
         self::assertSame([4.3, 212], [$body['rating'], $body['rating_count']]);
-        self::assertSame([
-            'author' => 'Mario R.',
-            'author_uri' => 'https://maps.google.com/u/1',
-            'rating' => 5,
-            'relative_time' => '2 settimane fa',
-            'text' => 'Personale gentile.',
-        ], $body['reviews'][0]);
-        self::assertSame('Utente Google', $body['reviews'][1]['author']);
-        self::assertSame('Valutazioni e recensioni fornite da Google', $body['attribution']);
+        self::assertSame('https://maps.google.com/?cid=1', $body['maps_url']);
+        // Le recensioni (tariffa più cara) non si chiedono.
+        self::assertSame([], $body['reviews']);
+        self::assertSame('id,rating,userRatingCount,googleMapsUri', $this->calls[1]['request']->getHeaderLine('X-Goog-FieldMask'));
+        self::assertSame('Valutazioni fornite da Google', $body['attribution']);
 
         // La seconda volta il place_id è già salvato: niente nuova ricerca.
         self::get($app, '/v1/stations/1001/google-rating');
@@ -119,6 +116,41 @@ final class GooglePlacesTest extends TestCase
     {
         [$status] = self::get(self::app($this->db), '/v1/stations/1001/google-rating');
         self::assertSame(503, $status);
+    }
+
+    public function testLimiteGiornalieroDiRichieste(): void
+    {
+        $day = '2026-09-29';
+        $budget = new GoogleBudget($this->db, 3, today: static function () use (&$day): string {
+            return $day;
+        });
+        $app = $this->appWithGoogle(budget: $budget);
+
+        // Ricerca + valutazione: 2 richieste. Poi solo la valutazione: 3.
+        self::assertSame(200, self::get($app, '/v1/stations/1001/google-rating')[0]);
+        self::assertSame(200, self::get($app, '/v1/stations/1001/google-rating')[0]);
+        self::assertSame(3, $budget->used());
+
+        // Limite raggiunto: 503 senza chiamare Google.
+        [$status, $body] = self::get($app, '/v1/stations/1001/google-rating');
+        self::assertSame(503, $status);
+        self::assertStringContainsString('Limite giornaliero', $body['detail']);
+        self::assertCount(3, $this->calls);
+
+        // Il giorno dopo si riparte.
+        $day = '2026-09-30';
+        self::assertSame(200, self::get($app, '/v1/stations/1001/google-rating')[0]);
+        self::assertSame(1, $budget->used());
+    }
+
+    public function testLimiteZeroVuolDireSenzaLimite(): void
+    {
+        $budget = new GoogleBudget($this->db, 0);
+        $app = $this->appWithGoogle(budget: $budget);
+        for ($i = 0; $i < 4; $i++) {
+            self::assertSame(200, self::get($app, '/v1/stations/1001/google-rating')[0]);
+        }
+        self::assertSame(0, $budget->used());
     }
 
     public function testDistributoreInesistente404(): void

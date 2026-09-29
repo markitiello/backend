@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Benzina;
 
+use Benzina\Google\GoogleBudget;
 use Benzina\Google\PlacesClient;
 use Benzina\Http\ApiController;
 use Benzina\Http\HttpProblem;
@@ -36,7 +37,11 @@ final class App
         $db->createSchema();
         $authenticator ??= Authenticator::fromConfig($config);
         if ($google === null && $config->googlePlacesApiKey !== null) {
-            $google = new PlacesClient($config->googlePlacesApiKey, rematchDays: $config->googleRematchDays);
+            $google = new PlacesClient(
+                $config->googlePlacesApiKey,
+                rematchDays: $config->googleRematchDays,
+                budget: new GoogleBudget($db, $config->googleDailyLimit),
+            );
         }
         if ($live === null && $config->livePrices) {
             $live = new LivePrices($db, new OsservaprezziClient(), $config->liveTtlMinutes);

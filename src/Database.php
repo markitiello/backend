@@ -96,6 +96,10 @@ final class Database
                 sent_at $timestamp NULL,
                 PRIMARY KEY (fuel, mode, day)
             )$engine",
+            // Richieste a Google Places per giorno (vedi Google\GoogleBudget).
+            "CREATE TABLE IF NOT EXISTS google_usage (
+                day DATE PRIMARY KEY, calls INTEGER NOT NULL
+            )$engine",
             // Orari, servizi e contatti da Osservaprezzi (JSON nella forma di StationDetails).
             "CREATE TABLE IF NOT EXISTS station_details (
                 station_id INTEGER PRIMARY KEY, details TEXT NOT NULL, fetched_at $timestamp NOT NULL
@@ -136,7 +140,7 @@ final class Database
 
     public function dropSchema(): void
     {
-        foreach (['stations', 'current_prices', 'price_changes', 'national_averages', 'imports', 'google_places', 'trend_alerts', 'live_fetches', 'station_details'] as $t) {
+        foreach (['stations', 'current_prices', 'price_changes', 'national_averages', 'imports', 'google_places', 'trend_alerts', 'live_fetches', 'station_details', 'google_usage'] as $t) {
             $this->pdo->exec("DROP TABLE IF EXISTS $t");
         }
     }

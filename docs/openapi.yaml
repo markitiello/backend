@@ -136,7 +136,8 @@ paths:
         e con il nome (e link) dell'autore di ogni recensione.
 
         - 404: distributore inesistente o nessun luogo Google abbinato.
-        - 503: integrazione Google non configurata sul server.
+        - 503: integrazione Google non configurata sul server, oppure limite
+          giornaliero di richieste raggiunto (BENZINA_GOOGLE_DAILY_LIMIT).
       operationId: stationGoogleRating
       parameters:
         - $ref: "#/components/parameters/StationId"
@@ -500,12 +501,14 @@ components:
           description: "Pagina del luogo su Google Maps."
         reviews:
           type: array
-          description: Al massimo 5, scelte da Google.
+          description: |
+            Per ora sempre vuota: le recensioni non si chiedono a Google perché
+            costano di più (tariffa "Atmosphere"). Resta per compatibilità.
           items: { $ref: "#/components/schemas/Review" }
         attribution:
           type: string
           description: Testo di attribuzione obbligatorio da mostrare nell'app.
-          example: Valutazioni e recensioni fornite da Google
+          example: Valutazioni fornite da Google
 
     TrendAlert:
       type: object

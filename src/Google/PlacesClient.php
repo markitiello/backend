@@ -25,12 +25,13 @@ final class PlacesClient
     public const BASE_URL = 'https://places.googleapis.com/v1';
     // Distanza massima tra il distributore MIMIT e il luogo Google.
     public const MATCH_RADIUS_M = 250;
-    public const ATTRIBUTION = 'Valutazioni e recensioni fornite da Google';
+    public const ATTRIBUTION = 'Valutazioni fornite da Google';
 
     public function __construct(
         private readonly string $apiKey,
         private readonly ClientInterface $http = new Client(['timeout' => 10]),
         private readonly int $rematchDays = 30,
+        private readonly ?GoogleBudget $budget = null,
     ) {
     }
 
@@ -43,11 +44,13 @@ final class PlacesClient
     /**
      * @param array<string, mixed> $station riga della tabella stations
      * @throws GooglePlacesException
+     * @throws GoogleQuotaException
      */
     public function findPlaceId(array $station): ?string
     {
         $lat = (float) $station['lat'];
         $lng = (float) $station['lng'];
+        $this->budget?->spend();
         try {
             $response = $this->http->request('POST', self::BASE_URL . '/places:searchText', [
                 'headers' => $this->headers('places.id,places.location'),
@@ -108,14 +111,20 @@ final class PlacesClient
     }
 
     /**
+     * Valutazione media, numero di voti e link a Google Maps. Le recensioni
+     * non si chiedono: costano di più (tariffa "Atmosphere") e l'app mostra
+     * solo le stelle.
+     *
      * @return array<string, mixed> nella forma dello schema GoogleRating
      * @throws GooglePlacesException
+     * @throws GoogleQuotaException
      */
     public function details(string $placeId): array
     {
+        $this->budget?->spend();
         try {
             $response = $this->http->request('GET', self::BASE_URL . '/places/' . rawurlencode($placeId), [
-                'headers' => $this->headers('id,rating,userRatingCount,googleMapsUri,reviews'),
+                'headers' => $this->headers('id,rating,userRatingCount,googleMapsUri'),
                 'query' => ['languageCode' => 'it', 'regionCode' => 'IT'],
             ]);
             $data = json_decode((string) $response->getBody(), true, flags: JSON_THROW_ON_ERROR);
@@ -128,13 +137,7 @@ final class PlacesClient
             'rating' => isset($data['rating']) ? (float) $data['rating'] : null,
             'rating_count' => (int) ($data['userRatingCount'] ?? 0),
             'maps_url' => $data['googleMapsUri'] ?? null,
-            'reviews' => array_map(static fn (array $r): array => [
-                'author' => $r['authorAttribution']['displayName'] ?? 'Utente Google',
-                'author_uri' => $r['authorAttribution']['uri'] ?? null,
-                'rating' => max(1, min(5, (int) ($r['rating'] ?? 1))),
-                'relative_time' => $r['relativePublishTimeDescription'] ?? '',
-                'text' => $r['text']['text'] ?? $r['originalText']['text'] ?? '',
-            ], $data['reviews'] ?? []),
+            'reviews' => [],
             'attribution' => self::ATTRIBUTION,
         ];
     }

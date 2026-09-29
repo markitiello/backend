@@ -19,7 +19,7 @@ MIMIT (CSV giornalieri) ──bin/import.php──▶ database ──▶ API (Sl
 - **API** (`src/App.php`, `src/Http/ApiController.php`): rotte e parametri come descritti in `docs/openapi.yaml`.
 - **Accesso**: solo l'app, con Firebase App Check; chiavi statiche per sviluppo (vedi [Autenticazione](docs/API.md#autenticazione)).
 - **Notifiche push** (`src/Trend/`): dopo l'import rileva quando la media nazionale inizia a salire o scendere e lo notifica con Firebase Cloud Messaging (Android e iOS). Vedi [Notifiche push di tendenza](docs/API.md#notifiche-push-di-tendenza).
-- **Google Places** (`src/Google/PlacesClient.php`): la chiave Google resta sul server; si salva solo il `place_id`.
+- **Google Places** (`src/Google/PlacesClient.php`): la chiave Google resta sul server; si salva solo il `place_id`, come consentono i termini di Google, quindi la ricerca si fa una volta per distributore. Si chiedono solo valutazione media, numero di voti e link a Google Maps: le recensioni costano di più. `BENZINA_GOOGLE_DAILY_LIMIT` limita le richieste al giorno; per sicurezza conviene impostare anche una quota giornaliera e un avviso di budget nella console Google Cloud.
 - **Database**: SQLite, MySQL/MariaDB o PostgreSQL, tramite PDO. Le tabelle si creano da sole.
 
 | Tabella | Contenuto |
@@ -119,6 +119,7 @@ Variabili d'ambiente o file `.env` (vedi `.env.example` e `src/Config.php`):
 | `BENZINA_TREND_MIN_DAYS` | `3` | Giorni consecutivi per una tendenza |
 | `BENZINA_TREND_MIN_CHANGE` | `0.005` | Variazione minima (0,5%) |
 | `BENZINA_TREND_COOLDOWN_DAYS` | `7` | Pausa tra avvisi nella stessa direzione |
+| `BENZINA_GOOGLE_DAILY_LIMIT` | `100` | Richieste a Google Places al giorno (a pagamento); `0` = nessun limite |
 | `BENZINA_LIVE_PRICES` | `false` | Prezzi aggiornati da Osservaprezzi (vedi sotto) |
 | `BENZINA_LIVE_TTL_MINUTES` | `10` | Ogni quanto richiederli, per zona o distributore |
 | `BENZINA_DOCS_ENABLED` | `true` | `/docs` e `/openapi.yaml` |

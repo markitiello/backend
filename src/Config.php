@@ -33,6 +33,8 @@ final class Config
         public readonly ?string $googlePlacesApiKey = null,
         // Dopo quanti giorni riprovare l'abbinamento di un distributore non trovato su Google.
         public readonly int $googleRematchDays = 30,
+        // Richieste a Google Places al giorno (a pagamento); 0 = nessun limite.
+        public readonly int $googleDailyLimit = 100,
         public readonly string $mimitStationsUrl = self::MIMIT_STATIONS_URL,
         public readonly string $mimitPricesUrl = self::MIMIT_PRICES_URL,
         // I prezzi comunicati da più giorni di così non entrano nelle medie.
@@ -77,6 +79,7 @@ final class Config
             authDisabled: $bool('AUTH_DISABLED', false),
             googlePlacesApiKey: $get('GOOGLE_PLACES_API_KEY'),
             googleRematchDays: (int) ($get('GOOGLE_REMATCH_DAYS') ?? 30),
+            googleDailyLimit: max(0, (int) ($get('GOOGLE_DAILY_LIMIT') ?? 100)),
             mimitStationsUrl: $get('MIMIT_STATIONS_URL') ?? self::MIMIT_STATIONS_URL,
             mimitPricesUrl: $get('MIMIT_PRICES_URL') ?? self::MIMIT_PRICES_URL,
             averageMaxAgeDays: (int) ($get('AVERAGE_MAX_AGE_DAYS') ?? 30),

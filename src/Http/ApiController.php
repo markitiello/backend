@@ -8,6 +8,7 @@ use Benzina\Database;
 use Benzina\ErrorLog;
 use Benzina\Fuel;
 use Benzina\Google\GooglePlacesException;
+use Benzina\Google\GoogleQuotaException;
 use Benzina\Google\PlacesClient;
 use Benzina\Live\LivePrices;
 use Benzina\Mode;
@@ -127,6 +128,8 @@ final class ApiController
                 throw new HttpProblem(404, 'Nessun luogo Google abbinato.');
             }
             return self::json($response, $this->google->details($placeId));
+        } catch (GoogleQuotaException) {
+            throw new HttpProblem(503, 'Limite giornaliero di richieste a Google raggiunto.');
         } catch (GooglePlacesException $e) {
             // Il motivo (chiave non valida, API non abilitata, fatturazione...) va
             // nel log; per capirlo: php bin/google-test.php ID_DISTRIBUTORE.
