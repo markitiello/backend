@@ -108,6 +108,20 @@ final class Database
             "CREATE TABLE IF NOT EXISTS live_fetches (
                 cell {$text(40)} PRIMARY KEY, fetched_at $timestamp NOT NULL
             )$engine",
+            // Appoggio per l'import giornaliero (vedi Importer): i prezzi del file
+            // si scrivono qui a blocchi e il resto si fa in SQL, così la memoria
+            // di PHP non dipende dalla dimensione del file. Vuote fuori dall'import.
+            "CREATE TABLE IF NOT EXISTS import_prices (
+                seq INTEGER PRIMARY KEY, station_id INTEGER NOT NULL, fuel {$text(10)} NOT NULL,
+                is_self SMALLINT NOT NULL, price DOUBLE PRECISION NOT NULL, reported_at $timestamp NOT NULL
+            )$engine",
+            'CREATE INDEX ix_import_prices_key ON import_prices (station_id, fuel, is_self, reported_at)',
+            // L'ultimo prezzo del file per distributore, carburante e modalità.
+            "CREATE TABLE IF NOT EXISTS import_latest (
+                station_id INTEGER NOT NULL, fuel {$text(10)} NOT NULL, is_self SMALLINT NOT NULL,
+                price DOUBLE PRECISION NOT NULL, reported_at $timestamp NOT NULL,
+                PRIMARY KEY (station_id, fuel, is_self)
+            )$engine",
             // Abbinamento con Google: si salva solo il place_id (NULL = cercato, non trovato).
             "CREATE TABLE IF NOT EXISTS google_places (
                 station_id INTEGER PRIMARY KEY, place_id {$text(300)} NULL, checked_at $timestamp NOT NULL
@@ -140,7 +154,7 @@ final class Database
 
     public function dropSchema(): void
     {
-        foreach (['stations', 'current_prices', 'price_changes', 'national_averages', 'imports', 'google_places', 'trend_alerts', 'live_fetches', 'station_details', 'google_usage'] as $t) {
+        foreach (['stations', 'current_prices', 'price_changes', 'national_averages', 'imports', 'google_places', 'trend_alerts', 'live_fetches', 'station_details', 'google_usage', 'import_prices', 'import_latest'] as $t) {
             $this->pdo->exec("DROP TABLE IF EXISTS $t");
         }
     }
@@ -172,6 +186,28 @@ final class Database
     }
 
     /**
+     * INSERT ... SELECT: copia righe tra tabelle senza passare da PHP. Con
+     * $ignoreDuplicates le righe già presenti vengono saltate. Restituisce il
+     * numero di righe inserite.
+     *
+     * @param list<string> $columns
+     * @param list<mixed> $params
+     */
+    public function insertFrom(string $table, array $columns, string $select, array $params = [], bool $ignoreDuplicates = false): int
+    {
+        $cols = implode(', ', $columns);
+        // "WHERE 1 = 1": senza WHERE, SQLite leggerebbe ON CONFLICT come parte di una JOIN.
+        $sql = match (true) {
+            !$ignoreDuplicates => "INSERT INTO $table ($cols) $select",
+            $this->driver() === 'mysql' => "INSERT IGNORE INTO $table ($cols) $select",
+            default => "INSERT INTO $table ($cols) SELECT * FROM ($select) src WHERE 1 = 1 ON CONFLICT DO NOTHING",
+        };
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->rowCount();
+    }
+
+    /**
      * @param list<mixed> $params
      * @return list<array<string, mixed>>
      */
@@ -180,6 +216,26 @@ final class Database
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Come all(), ma una riga alla volta: per le tabelle grandi, senza tenerle
+     * tutte in memoria.
+     *
+     * @param list<mixed> $params
+     * @return \Generator<int, array<string, mixed>>
+     */
+    public function each(string $sql, array $params = []): \Generator
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        try {
+            while (($row = $stmt->fetch()) !== false) {
+                yield $row;
+            }
+        } finally {
+            $stmt->closeCursor();
+        }
     }
 
     /**

@@ -35,40 +35,61 @@ final class Parser
      */
     public static function parseStations(iterable $lines): array
     {
+        [$day, $rows] = self::stations($lines);
+        return [$day, iterator_to_array($rows, false)];
+    }
+
+    /**
+     * Come parseStations(), ma un distributore alla volta: per i file interi,
+     * senza tenerli tutti in memoria. Data e intestazione si controllano subito.
+     *
+     * @param iterable<string> $lines
+     * @return array{string, \Generator<int, StationRow>}
+     */
+    public static function stations(iterable $lines): array
+    {
         [$day, $body] = self::split($lines);
-        $rows = [];
-        foreach ($body as $line) {
-            $parts = explode(self::SEPARATOR, $line);
-            if (count($parts) < self::STATION_COLUMNS) {
-                continue;
+        return [$day, (static function () use ($body): \Generator {
+            foreach ($body as $line) {
+                $station = self::station($line);
+                if ($station !== null) {
+                    yield $station;
+                }
             }
-            // Il nome dell'impianto può contenere "|": i primi 4 campi si leggono
-            // da sinistra, gli ultimi 5 da destra e il resto è il nome.
-            $head = array_slice($parts, 0, 4);
-            $tail = array_slice($parts, -5);
-            $name = implode(self::SEPARATOR, array_slice($parts, 4, count($parts) - 9));
-            if (!is_numeric($head[0]) || !is_numeric(trim($tail[3])) || !is_numeric(trim($tail[4]))) {
-                continue;
-            }
-            $lat = (float) $tail[3];
-            $lng = (float) $tail[4];
-            if ($lat < 35 || $lat > 48 || $lng < 6 || $lng > 19) { // fuori dall'Italia
-                continue;
-            }
-            $rows[] = new StationRow(
-                id: (int) $head[0],
-                operator: self::clean($head[1]),
-                brand: self::clean($head[2]),
-                kind: self::clean($head[3]),
-                name: self::clean($name),
-                address: self::clean($tail[0]),
-                city: self::clean($tail[1]),
-                province: self::clean($tail[2]),
-                lat: $lat,
-                lng: $lng,
-            );
+        })()];
+    }
+
+    private static function station(string $line): ?StationRow
+    {
+        $parts = explode(self::SEPARATOR, $line);
+        if (count($parts) < self::STATION_COLUMNS) {
+            return null;
         }
-        return [$day, $rows];
+        // Il nome dell'impianto può contenere "|": i primi 4 campi si leggono
+        // da sinistra, gli ultimi 5 da destra e il resto è il nome.
+        $head = array_slice($parts, 0, 4);
+        $tail = array_slice($parts, -5);
+        $name = implode(self::SEPARATOR, array_slice($parts, 4, count($parts) - 9));
+        if (!is_numeric($head[0]) || !is_numeric(trim($tail[3])) || !is_numeric(trim($tail[4]))) {
+            return null;
+        }
+        $lat = (float) $tail[3];
+        $lng = (float) $tail[4];
+        if ($lat < 35 || $lat > 48 || $lng < 6 || $lng > 19) { // fuori dall'Italia
+            return null;
+        }
+        return new StationRow(
+            id: (int) $head[0],
+            operator: self::clean($head[1]),
+            brand: self::clean($head[2]),
+            kind: self::clean($head[3]),
+            name: self::clean($name),
+            address: self::clean($tail[0]),
+            city: self::clean($tail[1]),
+            province: self::clean($tail[2]),
+            lat: $lat,
+            lng: $lng,
+        );
     }
 
     /**
@@ -79,31 +100,73 @@ final class Parser
      */
     public static function parsePrices(iterable $lines): array
     {
+        [$day, $rows] = self::prices($lines);
+        return [$day, iterator_to_array($rows, false)];
+    }
+
+    /**
+     * Come parsePrices(), ma un prezzo alla volta (vedi stations()).
+     *
+     * @param iterable<string> $lines
+     * @return array{string, \Generator<int, PriceRow>}
+     */
+    public static function prices(iterable $lines): array
+    {
         [$day, $body] = self::split($lines);
-        $rows = [];
-        foreach ($body as $line) {
-            $parts = explode(self::SEPARATOR, $line);
-            if (count($parts) !== self::PRICE_COLUMNS) {
-                continue;
+        return [$day, (static function () use ($body): \Generator {
+            foreach ($body as $line) {
+                $price = self::price($line);
+                if ($price !== null) {
+                    yield $price;
+                }
             }
-            $fuel = Fuel::fromMimit(trim($parts[1]));
-            if ($fuel === null || !is_numeric($parts[0]) || !is_numeric(trim($parts[2]))) {
-                continue;
-            }
-            $price = (float) $parts[2];
-            $reportedAt = DateTimeImmutable::createFromFormat('!d/m/Y H:i:s', trim($parts[4]));
-            if ($reportedAt === false || $price < 0.3 || $price > 5.0) { // errori evidenti
-                continue;
-            }
-            $rows[] = new PriceRow(
-                stationId: (int) $parts[0],
-                fuel: $fuel,
-                isSelf: trim($parts[3]) === '1',
-                price: $price,
-                reportedAt: $reportedAt->format('Y-m-d H:i:s'),
-            );
+        })()];
+    }
+
+    private static function price(string $line): ?PriceRow
+    {
+        $parts = explode(self::SEPARATOR, $line);
+        if (count($parts) !== self::PRICE_COLUMNS) {
+            return null;
         }
-        return [$day, $rows];
+        $fuel = Fuel::fromMimit(trim($parts[1]));
+        if ($fuel === null || !is_numeric($parts[0]) || !is_numeric(trim($parts[2]))) {
+            return null;
+        }
+        $price = (float) $parts[2];
+        $reportedAt = DateTimeImmutable::createFromFormat('!d/m/Y H:i:s', trim($parts[4]));
+        if ($reportedAt === false || $price < 0.3 || $price > 5.0) { // errori evidenti
+            return null;
+        }
+        return new PriceRow(
+            stationId: (int) $parts[0],
+            fuel: $fuel,
+            isSelf: trim($parts[3]) === '1',
+            price: $price,
+            reportedAt: $reportedAt->format('Y-m-d H:i:s'),
+        );
+    }
+
+    /**
+     * Righe di un file letto un po' alla volta, senza "\r\n" finali.
+     *
+     * @param string|resource $file percorso oppure handle già aperto (viene chiuso)
+     * @return \Generator<int, string>
+     * @throws MimitFormatException se il file non si può aprire
+     */
+    public static function readLines(mixed $file): \Generator
+    {
+        $handle = is_string($file) ? @fopen($file, 'r') : $file;
+        if (!is_resource($handle)) {
+            throw new MimitFormatException('impossibile leggere ' . (is_string($file) ? $file : 'il file'));
+        }
+        try {
+            while (($line = fgets($handle)) !== false) {
+                yield rtrim($line, "\r\n");
+            }
+        } finally {
+            fclose($handle);
+        }
     }
 
     /**

@@ -16,6 +16,7 @@ declare(strict_types=1);
 use Benzina\Config;
 use Benzina\Database;
 use Benzina\Importer;
+use Benzina\Mimit\Parser;
 use Benzina\Trend\FcmClient;
 use Benzina\Trend\TrendAlerts;
 use Psr\Log\AbstractLogger;
@@ -32,16 +33,16 @@ $config = Config::fromEnv(Config::loadEnv(__DIR__ . '/../.env'));
 $db = Database::connect($config);
 $db->createSchema();
 
-$read = static function (?string $file, string $url): array {
+// Righe lette una alla volta: i file interi in memoria pesano decine di MB.
+$read = static function (?string $file, string $url): \Generator {
     if ($file === null) {
         return Importer::download($url);
     }
-    $lines = file($file, FILE_IGNORE_NEW_LINES);
-    if ($lines === false) {
+    if (!is_readable($file)) {
         fwrite(STDERR, "Impossibile leggere $file\n");
         exit(1);
     }
-    return $lines;
+    return Parser::readLines($file);
 };
 
 $log = new class extends AbstractLogger {

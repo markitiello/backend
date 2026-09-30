@@ -66,7 +66,7 @@ final class Backfill
                 continue;
             }
             try {
-                [$fileDay, $prices] = Parser::parsePrices(self::readLines($file));
+                [$fileDay, $prices] = Parser::parsePrices(Parser::readLines($file));
             } catch (MimitFormatException $e) {
                 $this->log->warning("$file: " . $e->getMessage());
                 continue;
@@ -154,27 +154,6 @@ final class Backfill
             $rows,
             ignoreDuplicates: true,
         );
-    }
-
-    /**
-     * Righe del file una alla volta: un file giornaliero intero in memoria
-     * pesa decine di MB, troppo per i limiti degli hosting condivisi.
-     *
-     * @return \Generator<int, string>
-     */
-    private static function readLines(string $file): \Generator
-    {
-        $handle = @fopen($file, 'r');
-        if ($handle === false) {
-            throw new MimitFormatException("impossibile leggere $file");
-        }
-        try {
-            while (($line = fgets($handle)) !== false) {
-                yield rtrim($line, "\r\n");
-            }
-        } finally {
-            fclose($handle);
-        }
     }
 
     /**

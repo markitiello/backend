@@ -63,4 +63,82 @@ final class ParserTest extends TestCase
         $this->expectException(MimitFormatException::class);
         Parser::parsePrices($lines);
     }
+
+    public function testStreamingUgualeAllaLetturaCompleta(): void
+    {
+        [$day, $stations] = Parser::stations(self::lines('stations_day1.csv'));
+        self::assertSame('2026-09-24', $day);
+        self::assertEquals(Parser::parseStations(self::lines('stations_day1.csv'))[1], iterator_to_array($stations, false));
+        [, $prices] = Parser::prices(self::lines('prices_day1.csv'));
+        self::assertEquals(Parser::parsePrices(self::lines('prices_day1.csv'))[1], iterator_to_array($prices, false));
+    }
+
+    public function testStreamingLeggeSoloQuandoServe(): void
+    {
+        $read = 0;
+        $lines = (static function () use (&$read): \Generator {
+            foreach (self::lines('prices_day1.csv') as $line) {
+                $read++;
+                yield $line;
+            }
+        })();
+        [$day, $prices] = Parser::prices($lines);
+        // Data e intestazione subito (più la riga dopo l'intestazione), il resto alla lettura.
+        self::assertSame('2026-09-24', $day);
+        self::assertSame(3, $read);
+        $prices->current();
+        $prices->next();
+        self::assertSame(4, $read);
+        while ($prices->valid()) {
+            $prices->next();
+        }
+        self::assertSame(count(self::lines('prices_day1.csv')), $read);
+    }
+
+    /** @param list<string> $lines */
+    #[DataProvider('fileMalformati')]
+    public function testFormatoInattesoSubitoAncheInStreaming(array $lines): void
+    {
+        $this->expectException(MimitFormatException::class);
+        Parser::stations((static fn () => yield from $lines)());
+    }
+
+    public function testRigheDaFileSenzaFineRiga(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'benzina-parser-');
+        file_put_contents($file, "prima\r\nseconda\n\nterza");
+        try {
+            self::assertSame(['prima', 'seconda', '', 'terza'], iterator_to_array(Parser::readLines($file), false));
+
+            $handle = fopen($file, 'r');
+            self::assertSame(['prima', 'seconda', '', 'terza'], iterator_to_array(Parser::readLines($handle), false));
+            self::assertFalse(is_resource($handle), 'il file va chiuso dopo la lettura');
+        } finally {
+            unlink($file);
+        }
+    }
+
+    public function testRigheFileChiusoAncheSeLetturaInterrotta(): void
+    {
+        $handle = fopen('php://memory', 'w+');
+        fwrite($handle, "a\nb\nc\n");
+        rewind($handle);
+        $lines = Parser::readLines($handle);
+        self::assertSame('a', $lines->current());
+        unset($lines);
+        self::assertFalse(is_resource($handle));
+    }
+
+    public function testRigheFileInesistente(): void
+    {
+        $this->expectException(MimitFormatException::class);
+        $this->expectExceptionMessage('impossibile leggere /percorso/inesistente.csv');
+        iterator_to_array(Parser::readLines('/percorso/inesistente.csv'));
+    }
+
+    public function testRigheHandleNonValido(): void
+    {
+        $this->expectException(MimitFormatException::class);
+        iterator_to_array(Parser::readLines(false));
+    }
 }
