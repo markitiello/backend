@@ -22,13 +22,6 @@ use Psr\Log\AbstractLogger;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-// Traccia delle esecuzioni (anche da cron): una riga per avvio e una per esito.
-$trace = static function (string $message): void {
-    @mkdir(__DIR__ . '/../var', 0775, true);
-    @file_put_contents(__DIR__ . '/../var/import-runs.log', date('Y-m-d H:i:s') . " $message\n", FILE_APPEND | LOCK_EX);
-};
-$trace('avvio (pid ' . getmypid() . ')');
-
 $options = getopt('', ['stations-file:', 'prices-file:', 'no-alerts', 'help']);
 if (isset($options['help'])) {
     fwrite(STDOUT, "Uso: php bin/import.php [--stations-file=FILE] [--prices-file=FILE] [--no-alerts]\n");
@@ -70,7 +63,5 @@ try {
     }
 } catch (\Throwable $e) {
     fwrite(STDERR, 'ERRORE ' . $e->getMessage() . "\n");
-    $trace('ERRORE ' . $e->getMessage());
     exit(1);
 }
-$trace("fine: giorno {$result['day']}, {$result['stations']} distributori, {$result['prices']} prezzi");
