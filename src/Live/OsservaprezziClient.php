@@ -71,6 +71,45 @@ final class OsservaprezziClient
     }
 
     /**
+     * Più distributori in parallelo (per i primi risultati di una ricerca).
+     * I distributori che non rispondono vengono saltati.
+     *
+     * @param list<int> $ids
+     * @return array<int, array{prices: list<PriceRow>, details: array<string, mixed>}>
+     */
+    public function stations(array $ids): array
+    {
+        $promises = [];
+        foreach ($ids as $id) {
+            $promises[$id] = $this->http->requestAsync('GET', self::STATION_URL . $id, [
+                'headers' => self::headers("https://carburanti.mise.gov.it/ospzSearch/dettaglio/$id"),
+            ]);
+        }
+        $result = [];
+        foreach (\GuzzleHttp\Promise\Utils::settle($promises)->wait() as $id => $outcome) {
+            if ($outcome['state'] !== 'fulfilled') {
+                continue;
+            }
+            $json = json_decode((string) $outcome['value']->getBody(), true);
+            if (is_array($json) && ($json['id'] ?? null) === $id && is_array($json['fuels'] ?? null)) {
+                $result[$id] = ['prices' => self::parse([$json]), 'details' => self::details($json)];
+            }
+        }
+        return $result;
+    }
+
+    /** @return array<string, string> */
+    private static function headers(string $referer): array
+    {
+        return [
+            'Accept' => 'application/json',
+            'Origin' => 'https://carburanti.mise.gov.it',
+            'Referer' => $referer,
+            'User-Agent' => 'Mozilla/5.0 (compatible; Benzina/1.0)',
+        ];
+    }
+
+    /**
      * Dettagli nella forma dello schema StationDetails: telefono, email, sito,
      * servizi e orari. Negli orari giornoSettimanaId va da 1 (lunedì) a 7
      * (domenica); 8 sono i festivi.
@@ -126,12 +165,7 @@ final class OsservaprezziClient
     {
         try {
             $response = $this->http->request($method, $url, [
-                'headers' => [
-                    'Accept' => 'application/json',
-                    'Origin' => 'https://carburanti.mise.gov.it',
-                    'Referer' => $referer,
-                    'User-Agent' => 'Mozilla/5.0 (compatible; Benzina/1.0)',
-                ],
+                'headers' => self::headers($referer),
                 ...($body === null ? [] : ['json' => $body]),
             ]);
             $json = json_decode((string) $response->getBody(), true, flags: JSON_THROW_ON_ERROR);

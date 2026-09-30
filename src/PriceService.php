@@ -106,6 +106,12 @@ final class PriceService
             ];
         }
         usort($offers, static fn (array $a, array $b): int => [$a['price'], $a['distance_km']] <=> [$b['price'], $b['distance_km']]);
+        $offers = array_slice($offers, 0, $limit);
+        $services = $this->services(array_map(static fn (array $o): int => $o['station']['id'], $offers));
+        foreach ($offers as &$offer) {
+            $offer['services'] = $services[$offer['station']['id']] ?? [];
+        }
+        unset($offer);
 
         $day = $this->latestImportDay();
         $average = $day === null ? null : $this->db->one(
@@ -117,8 +123,30 @@ final class PriceService
             'mode' => $mode->value,
             'data_date' => $day,
             'national_average' => $average === null ? null : (float) $average['price'],
-            'offers' => array_slice($offers, 0, $limit),
+            'offers' => $offers,
         ];
+    }
+
+    /**
+     * Servizi dei distributori già letti da Osservaprezzi (vedi station_details).
+     *
+     * @param list<int> $ids
+     * @return array<int, list<string>>
+     */
+    public function services(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        $in = Database::placeholders(count($ids));
+        $services = [];
+        foreach ($this->db->all("SELECT station_id, details FROM station_details WHERE station_id IN ($in)", $ids) as $d) {
+            $decoded = json_decode((string) $d['details'], true);
+            if (is_array($decoded) && is_array($decoded['services'] ?? null)) {
+                $services[(int) $d['station_id']] = array_values(array_filter($decoded['services'], 'is_string'));
+            }
+        }
+        return $services;
     }
 
     /**

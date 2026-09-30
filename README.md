@@ -56,7 +56,7 @@ Il file open data è quello delle 8: i prezzi cambiati dopo compaiono il giorno 
 
 - **Quando:**
   - `GET /v1/stations/nearby` chiede i distributori della zona (`POST /ospzApi/search/zone`);
-  - `GET /v1/stations/{id}` chiede il singolo distributore (`GET /ospzApi/registry/servicearea/{id}`), che ha l'ora di ogni prezzo. Da qui arrivano anche **orari, servizi (bancomat, bar, Wi-Fi…) e contatti**, salvati in `station_details` e restituiti nel campo `details`.
+  - `GET /v1/stations/{id}` chiede il singolo distributore (`GET /ospzApi/registry/servicearea/{id}`), che ha l'ora di ogni prezzo. Da qui arrivano anche **orari, servizi (bancomat, bar, Wi-Fi…) e contatti**, salvati in `station_details` e restituiti nel campo `details`. A ogni ricerca il backend legge in parallelo i dettagli dei primi risultati che non li hanno, al massimo 3 e ciascuno al massimo ogni 7 giorni, così la lista mostra subito i servizi (`services` in ogni risultato).
 - **Frequenza:** al massimo una richiesta ogni `BENZINA_LIVE_TTL_MINUTES` per zona (celle di circa 2 km) o per distributore, qualunque sia il numero di utenti.
 - **Cosa si salva:** i prezzi attuali e lo storico, solo se il prezzo è cambiato e la comunicazione è più recente. L'import delle 8 non li riporta indietro.
 - **Se l'API non risponde o risponde in modo inatteso:** l'errore va nel log, si resta sui dati del file e per 5 minuti non si riprova.

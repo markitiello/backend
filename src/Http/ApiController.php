@@ -74,7 +74,13 @@ final class ApiController
         $limit = $q->int('limit', 1, 200, 50);
         $q->check();
         $this->live?->refresh($lat, $lng, $radius);
-        return self::json($response, $this->prices->nearby($lat, $lng, $radius, $fuel, $mode, $limit));
+        $result = $this->prices->nearby($lat, $lng, $radius, $fuel, $mode, $limit);
+        // Servizi (bar, bancomat...) dei primi risultati che non li hanno ancora.
+        $top = array_map(static fn (array $o): int => $o['station']['id'], array_slice($result['offers'], 0, 5));
+        if ($this->live?->prefetchDetails($top) > 0) {
+            $result = $this->prices->nearby($lat, $lng, $radius, $fuel, $mode, $limit);
+        }
+        return self::json($response, $result);
     }
 
     public function stations(Request $request, Response $response): Response

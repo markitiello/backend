@@ -72,14 +72,60 @@ final class LivePrices
             return 0;
         }
         $updated = $this->store($station['prices']);
-        $this->db->transaction(function () use ($id, $station, $now): void {
-            $this->db->execute('DELETE FROM station_details WHERE station_id = ?', [$id]);
-            $this->db->insertMany('station_details', ['station_id', 'details', 'fetched_at'], [
-                [$id, json_encode($station['details'], JSON_UNESCAPED_UNICODE), $now->format('Y-m-d H:i:s')],
-            ]);
-        });
+        $this->saveDetails($id, $station['details'], $now);
         $this->mark($key, $now);
         return $updated;
+    }
+
+    /**
+     * Legge in parallelo i dettagli (servizi, orari) dei distributori che non
+     * li hanno o li hanno da più di $detailsMaxAgeDays, al massimo $max: così i
+     * primi risultati di una ricerca mostrano i servizi.
+     *
+     * @param list<int> $ids in ordine di importanza
+     * @return int distributori letti
+     */
+    public function prefetchDetails(array $ids, int $max = 3, int $detailsMaxAgeDays = 7): int
+    {
+        $now = $this->now();
+        if ($ids === [] || $this->recent(self::ERROR_KEY, $now, $this->pauseMinutes)) {
+            return 0;
+        }
+        $in = Database::placeholders(count($ids));
+        $fresh = [];
+        $limit = $now->modify("-$detailsMaxAgeDays days")->format('Y-m-d H:i:s');
+        foreach ($this->db->all("SELECT station_id, fetched_at FROM station_details WHERE station_id IN ($in)", $ids) as $d) {
+            if (substr((string) $d['fetched_at'], 0, 19) > $limit) {
+                $fresh[(int) $d['station_id']] = true;
+            }
+        }
+        $missing = array_slice(array_values(array_filter($ids, static fn (int $id): bool => !isset($fresh[$id]))), 0, $max);
+        if ($missing === []) {
+            return 0;
+        }
+        $stations = $this->client->stations($missing);
+        if ($stations === []) {
+            // Nessuna risposta: probabilmente Osservaprezzi non è raggiungibile.
+            $this->mark(self::ERROR_KEY, $now);
+            return 0;
+        }
+        foreach ($stations as $id => $station) {
+            $this->store($station['prices']);
+            $this->saveDetails($id, $station['details'], $now);
+            $this->mark("impianto|$id", $now);
+        }
+        return count($stations);
+    }
+
+    /** @param array<string, mixed> $details */
+    private function saveDetails(int $id, array $details, DateTimeImmutable $now): void
+    {
+        $this->db->transaction(function () use ($id, $details, $now): void {
+            $this->db->execute('DELETE FROM station_details WHERE station_id = ?', [$id]);
+            $this->db->insertMany('station_details', ['station_id', 'details', 'fetched_at'], [
+                [$id, json_encode($details, JSON_UNESCAPED_UNICODE), $now->format('Y-m-d H:i:s')],
+            ]);
+        });
     }
 
     /** @param list<\Benzina\Mimit\PriceRow> $rows */

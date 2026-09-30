@@ -419,8 +419,15 @@ components:
 
     Offer:
       type: object
-      required: [station, price, mode, reported_at, distance_km]
+      required: [station, price, mode, reported_at, distance_km, services]
       properties:
+        services:
+          type: array
+          description: |
+            Servizi del distributore già noti da Osservaprezzi (es. Bancomat,
+            Food&Beverage); vuoto se non ancora letti. Con BENZINA_LIVE_PRICES
+            il backend legge quelli dei primi risultati di ogni ricerca.
+          items: { type: string }
         station: { $ref: "#/components/schemas/StationSummary" }
         price: { type: number, example: 1.739 }
         mode:

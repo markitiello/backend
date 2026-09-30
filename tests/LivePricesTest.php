@@ -249,6 +249,42 @@ final class LivePricesTest extends TestCase
         ];
     }
 
+    public function testLaRicercaLeggeIServiziDeiPrimiRisultati(): void
+    {
+        $db = self::importedDatabase();
+        // Osservaprezzi finto: ricerca per zona vuota, dettaglio con i servizi.
+        $router = static function (\Psr\Http\Message\RequestInterface $request): Response {
+            if (str_ends_with($request->getUri()->getPath(), '/search/zone')) {
+                return self::zone([]);
+            }
+            $id = (int) basename($request->getUri()->getPath());
+            return new Response(200, ['Content-Type' => 'application/json'], json_encode([
+                'id' => $id,
+                'fuels' => [],
+                'services' => [['id' => '6', 'description' => 'Bancomat'], ['id' => '1', 'description' => 'Food&Beverage']],
+                'orariapertura' => [],
+            ]));
+        };
+        $this->mock->append(...array_fill(0, 20, $router));
+        $app = self::app($db, live: $this->live($db));
+        $query = ['lat' => '45.4781', 'lng' => '9.227', 'radius_km' => '5'];
+
+        [$status, $body] = self::get($app, '/v1/stations/nearby', $query);
+
+        self::assertSame(200, $status);
+        $details = array_filter($this->sent, static fn (array $c): bool => str_contains((string) $c['request']->getUri(), '/servicearea/'));
+        self::assertCount(3, $details, 'solo i primi 3 risultati');
+        self::assertSame(['Bancomat', 'Food&Beverage'], $body['offers'][0]['services']);
+        self::assertSame([], $body['offers'][3]['services']);
+
+        // Stessa ricerca poco dopo: dettagli già noti, prezzi in cache.
+        $sent = count($this->sent);
+        [, $again] = self::get($app, '/v1/stations/nearby', $query);
+        self::assertSame(['Bancomat', 'Food&Beverage'], $again['offers'][0]['services']);
+        self::assertGreaterThanOrEqual($sent, count($this->sent));
+        self::assertLessThanOrEqual($sent + 1, count($this->sent), 'al massimo il quarto risultato');
+    }
+
     public function testLImportDelleOttoNonCancellaIPrezziPiuRecenti(): void
     {
         $db = self::importedDatabase();
