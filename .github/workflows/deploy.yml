@@ -25,6 +25,8 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # numero di commit per la versione (deploy/version.sh)
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"

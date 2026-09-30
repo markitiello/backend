@@ -65,6 +65,11 @@ build_release() {
   # Se Composer ha dovuto clonare i pacchetti da git, niente cartelle .git online.
   find "$build/vendor" -name .git -type d -prune -exec rm -rf {} +
   git -C "$ROOT" rev-parse HEAD > "$build/REVISION"
+  # Versione mostrata da /health e nell'app: MAJOR.MINOR.COMMIT (short commit).
+  local version
+  version="$("$ROOT/deploy/version.sh")" || die "Versione non calcolabile (vedi deploy/version.sh)."
+  read -r number commit <<< "$version"
+  printf '{"version":"%s","commit":"%s"}\n' "$number" "$commit" > "$build/build.json"
   # mktemp crea la cartella con permessi 700: il web server deve poterla leggere.
   chmod 755 "$build"
 }

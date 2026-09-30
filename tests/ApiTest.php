@@ -12,7 +12,7 @@ final class ApiTest extends TestCase
     {
         [$status, $body] = self::get(self::app(), '/health', headers: []);
         self::assertSame(200, $status);
-        self::assertSame(['status' => 'ok', 'data_date' => '2026-09-25'], $body);
+        self::assertSame(['status' => 'ok', 'data_date' => '2026-09-25'], array_intersect_key($body, ['status' => 1, 'data_date' => 1]));
     }
 
     public function testSenzaCredenziali401(): void

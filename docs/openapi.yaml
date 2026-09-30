@@ -28,7 +28,9 @@ paths:
     get:
       tags: [Servizio]
       summary: Stato del servizio
-      description: Non richiede autenticazione. `data_date` è il giorno dell'ultimo import MIMIT.
+      description: |
+        Non richiede autenticazione. `data_date` è il giorno dell'ultimo import
+        MIMIT; `version` e `commit` la versione del backend in esecuzione.
       operationId: health
       security: []
       responses:
@@ -330,10 +332,19 @@ components:
 
     Health:
       type: object
-      required: [status, data_date]
+      required: [status, data_date, version, commit]
       properties:
         status: { type: string, example: ok }
         data_date: { type: string, format: date, nullable: true, example: "2026-09-25" }
+        version:
+          type: string
+          description: "MAJOR.MINOR.COMMIT (numero di commit); in sviluppo solo MAJOR.MINOR."
+          example: 1.0.57
+        commit:
+          type: string
+          nullable: true
+          description: Short commit della versione pubblicata; null in sviluppo.
+          example: e21dfd2
 
     Price:
       type: object

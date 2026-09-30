@@ -12,3 +12,5 @@
 # Credenziali Firebase: mai nel repository.
 *service-account*.json
 firebase-*.json
+# Versione scritta dal deploy (deploy/lib.sh).
+/build.json

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Benzina\Http;
 
+use Benzina\BuildInfo;
 use Benzina\Database;
 use Benzina\ErrorLog;
 use Benzina\Fuel;
@@ -40,7 +41,11 @@ final class ApiController
 
     public function health(Request $request, Response $response): Response
     {
-        return self::json($response, ['status' => 'ok', 'data_date' => $this->prices->latestImportDay()]);
+        return self::json($response, [
+            'status' => 'ok',
+            'data_date' => $this->prices->latestImportDay(),
+            ...BuildInfo::read(),
+        ]);
     }
 
     /** @return array{Fuel, Mode} */

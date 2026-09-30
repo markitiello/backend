@@ -128,6 +128,8 @@ Senza `BENZINA_APPCHECK_PROJECT_NUMBER` né `BENZINA_API_KEYS` il server rifiuta
 
 ## Deploy
 
+**Versione:** `MAJOR.MINOR.COMMIT` e short commit, come nell'app. `MAJOR.MINOR` si cambiano a mano nel file `VERSION`; il deploy aggiunge il numero di commit e scrive `build.json` (`deploy/version.sh`). `GET /health` restituisce `version` e `commit`, e l'app li mostra in Impostazioni → Server. In sviluppo, senza `build.json`, c'è solo `MAJOR.MINOR`.
+
 Gli script sono in `deploy/`. La configurazione va in `deploy/deploy.env`, da creare partendo da `deploy/deploy.env.example`; il file non va nel repository. Ogni script esegue prima i test (`--skip-tests` per saltarli) e alla fine controlla che `GET /health` risponda.
 
 Sul computer da cui si fa il deploy servono PHP 8.2 o successivo, Composer, git e curl, più `rsync` per `deploy.sh` o `lftp` per `deploy-ftp.sh`. Se mancano le dipendenze di sviluppo (PHPUnit), gli script le installano da soli con `composer install`.

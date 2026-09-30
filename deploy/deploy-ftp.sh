@@ -77,4 +77,4 @@ LFTP
 fi
 
 health_check || die "Il sito non risponde correttamente su $DEPLOY_URL/health (controllare .env sul server)."
-ok "Online: $(cat "$BUILD/REVISION")"
+ok "Online: $(cat "$BUILD/build.json")"
