@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benzina · Informativa sulla privacy</title>
+<meta name="description" content="Informativa sul trattamento dei dati personali dell'app Benzina.">
+<style>
+  :root {
+    --bg: #faf8f4;
+    --fg: #1d1b18;
+    --muted: #6b655c;
+    --line: #e4ded3;
+    --accent: #b45309;
+    --box: #f1ece3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161513;
+      --fg: #ece8e1;
+      --muted: #a39d93;
+      --line: #34312c;
+      --accent: #f59e0b;
+      --box: #211f1b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 4px; }
+  h2 { font-size: 1.2rem; margin: 2.2em 0 .4em; padding-top: 1em; border-top: 1px solid var(--line); }
+  h3 { font-size: 1rem; margin: 1.4em 0 .2em; }
+  p, li { margin: .4em 0; }
+  ul { padding-left: 1.3em; }
+  a { color: var(--accent); }
+  .meta { color: var(--muted); margin: 0 0 1.5em; }
+  .summary { background: var(--box); border-radius: 12px; padding: 14px 18px; }
+  .summary ul { margin: .3em 0 0; }
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; margin: .6em 0; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  @media (max-width: 560px) {
+    table, thead, tbody, tr, th, td { display: block; }
+    thead { display: none; }
+    tr { padding: 8px 0; border-bottom: 1px solid var(--line); }
+    td { border: 0; padding: 2px 0; }
+    td:first-child { font-weight: 600; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Informativa sulla privacy</h1>
+  <p class="meta">App <strong>Benzina</strong> · ultimo aggiornamento: 3 ottobre 2026</p>
+
+  <div class="summary">
+    <strong>In breve</strong>
+    <ul>
+      <li>Non ci sono account, pubblicità né strumenti di analisi o di profilazione.</li>
+      <li>La posizione serve solo a trovare i distributori vicini: il server la usa per rispondere e non la salva nel database.</li>
+      <li>Preferiti e impostazioni restano sul telefono.</li>
+      <li>Non vendiamo né cediamo dati a nessuno.</li>
+    </ul>
+  </div>
+
+  <h2>1. Titolare del trattamento</h2>
+  <p>Marco Chimenti<br>
+  Email: <a href="mailto:[EMAIL DI CONTATTO]">[EMAIL DI CONTATTO]</a></p>
+  <p>Per qualsiasi domanda su questa informativa o sui tuoi dati puoi scrivere a questo indirizzo.</p>
+
+  <h2>2. Cosa fa l'app</h2>
+  <p>Benzina mostra i prezzi dei carburanti dei distributori vicini, la media nazionale e l'andamento dei prezzi.
+  I prezzi sono quelli che i gestori comunicano all'Osservatorio prezzi carburanti del Ministero delle Imprese e del Made in Italy (MIMIT).</p>
+
+  <h2>3. Quali dati trattiamo e perché</h2>
+
+  <h3>Posizione</h3>
+  <p>Con il tuo permesso l'app legge la posizione del telefono, approssimativa o precisa, solo mentre la usi; mai in background.
+  A ogni ricerca invia al nostro server le coordinate, il raggio e il carburante scelti. Il server:</p>
+  <ul>
+    <li>usa le coordinate per calcolare i distributori più vicini e la media della zona e poi le scarta: non le salva nel database e non le associa a te;</li>
+    <li>per avere i prezzi più recenti chiede all'Osservatorio prezzi del MIMIT i distributori di una zona di circa 2 km, indicando solo il centro della zona e non la tua posizione esatta;
+    la richiesta parte dal nostro server, quindi il MIMIT non riceve il tuo indirizzo IP.</li>
+  </ul>
+  <p>Puoi negare o revocare il permesso dalle impostazioni del telefono: in quel caso l'app non può cercare i distributori vicini.</p>
+
+  <h3>Dati tecnici delle richieste</h3>
+  <p>Come ogni sito, il server registra nei log l'indirizzo IP, la data e l'ora e l'indirizzo richiesto, che per le ricerche contiene le coordinate
+  e per i preferiti gli identificativi dei distributori. I log servono solo alla sicurezza e alla risoluzione dei malfunzionamenti
+  e sono cancellati automaticamente entro <strong>14 giorni</strong>.</p>
+
+  <h3>Verifica dell'app (Firebase App Check)</h3>
+  <p>Per proteggere il server dagli usi non autorizzati, l'app chiede a Google (Play Integrity, su Android) o ad Apple (App Attest, su iPhone)
+  un attestato che conferma che la richiesta arriva dall'app originale su un dispositivo autentico.
+  Il server controlla l'attestato e non lo conserva. Per produrlo Google e Apple trattano informazioni sul dispositivo e sull'app secondo le proprie informative.</p>
+
+  <h3>Notifiche push</h3>
+  <p>Se attivi le notifiche, il servizio Firebase Cloud Messaging di Google, che su iPhone si appoggia al servizio di notifiche di Apple, assegna al telefono un identificativo.
+  L'app si iscrive ai gruppi di notifica dei carburanti che scegli, ad esempio “benzina in aumento”. Il nostro server invia gli avvisi a questi gruppi:
+  non riceve né conserva l'identificativo del tuo telefono. Puoi disattivare le notifiche in qualsiasi momento dall'app o dalle impostazioni del telefono.</p>
+
+  <h3>Dati salvati sul telefono</h3>
+  <p>Sul telefono restano i distributori preferiti, le impostazioni (carburante, raggio, tema), le notifiche già lette
+  e una copia delle ultime risposte del server, usata quando la connessione non è disponibile.
+  Questi dati non vengono inviati a noi e si cancellano disinstallando l'app o cancellandone i dati.</p>
+
+  <h2>4. Servizi di terze parti</h2>
+  <table>
+    <thead><tr><th>Servizio</th><th>Quando</th><th>Cosa riceve</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Mappa (OpenStreetMap)</td>
+        <td>Quando apri la scheda Mappa</td>
+        <td>Il telefono scarica le immagini della mappa direttamente dai server della OpenStreetMap Foundation, che ricevono l'indirizzo IP e la zona visualizzata.
+        <a href="https://osmfoundation.org/wiki/Privacy_Policy" rel="noopener">Informativa OSMF</a></td>
+      </tr>
+      <tr>
+        <td>Valutazioni Google</td>
+        <td>Nella pagina di un distributore</td>
+        <td>Il nostro server chiede a Google Maps Platform le stelle del distributore. A Google arrivano solo nome, indirizzo e posizione del distributore, nessun dato tuo.
+        Se tocchi il collegamento a Google Maps si applica l'<a href="https://policies.google.com/privacy" rel="noopener">informativa di Google</a>.</td>
+      </tr>
+      <tr>
+        <td>Navigazione, telefono, sito, email</td>
+        <td>Quando tocchi “Naviga” o un contatto del distributore</td>
+        <td>L'app apre l'app di mappe, il telefono, il browser o l'email del dispositivo, che trattano i dati secondo le proprie informative.</td>
+      </tr>
+      <tr>
+        <td>Firebase (Google)</td>
+        <td>Verifica dell'app e notifiche</td>
+        <td>Vedi sopra. <a href="https://firebase.google.com/support/privacy" rel="noopener">Privacy e sicurezza in Firebase</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5. Basi giuridiche</h2>
+  <ul>
+    <li><strong>Fornire il servizio che chiedi</strong> (art. 6.1.b GDPR): la ricerca dei distributori vicini, i prezzi e le notifiche che attivi.</li>
+    <li><strong>Legittimo interesse</strong> (art. 6.1.f GDPR): la sicurezza del server, cioè i log e la verifica dell'app.</li>
+    <li>L'accesso a posizione e notifiche avviene solo con il permesso che concedi dal sistema operativo e che puoi revocare in ogni momento.</li>
+  </ul>
+
+  <h2>6. Chi tratta i dati per nostro conto</h2>
+  <ul>
+    <li>Il fornitore di hosting del server, [NOME DEL FORNITORE DI HOSTING], che ospita il server e i log.</li>
+    <li>Google Ireland Ltd e Google LLC (Firebase Cloud Messaging, Firebase App Check, Play Integrity) e Apple Inc. (servizio di notifiche, App Attest),
+    che possono trattare dati anche fuori dall'Unione Europea con le garanzie previste dal GDPR,
+    come l'EU-U.S. Data Privacy Framework e le clausole contrattuali standard.</li>
+  </ul>
+  <p>Non vendiamo dati e non li cediamo ad altri per pubblicità o profilazione.</p>
+
+  <h2>7. Conservazione</h2>
+  <ul>
+    <li>Posizione: non viene conservata; si usa solo per rispondere alla richiesta.</li>
+    <li>Log del server: al massimo 14 giorni.</li>
+    <li>Dati sul telefono: finché non disinstalli l'app o ne cancelli i dati.</li>
+  </ul>
+
+  <h2>8. I tuoi diritti</h2>
+  <p>Puoi chiedere l'accesso, la rettifica, la cancellazione o la limitazione dei tuoi dati, opporti al trattamento e chiederne la portabilità (articoli 15–22 del GDPR),
+  scrivendo all'indirizzo indicato sopra.
+  Non avendo account, per ritrovare dati che ti riguardano, ad esempio nei log, potremmo chiederti informazioni come l'indirizzo IP e l'orario di utilizzo.
+  Hai anche il diritto di presentare reclamo al <a href="https://www.garanteprivacy.it" rel="noopener">Garante per la protezione dei dati personali</a>.</p>
+
+  <h2>9. Minori</h2>
+  <p>L'app non è rivolta ai minori di 14 anni e non raccoglie consapevolmente i loro dati.</p>
+
+  <h2>10. Modifiche</h2>
+  <p>Se questa informativa cambia, la nuova versione sarà pubblicata su questa pagina con la data di aggiornamento.
+  Le modifiche importanti saranno segnalate anche nell'app.</p>
+</main>
+</body>
+</html>

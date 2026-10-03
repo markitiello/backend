@@ -24,6 +24,8 @@ final class LivePrices
 {
     /** Lato delle celle in gradi (circa 2 km). */
     private const CELL = 0.02;
+    /** Distanza massima tra un punto e il centro della sua cella, arrotondata. */
+    private const CELL_MARGIN_KM = 2.0;
     private const ERROR_KEY = 'errore';
 
     public function __construct(
@@ -38,14 +40,19 @@ final class LivePrices
     /** @return int prezzi aggiornati */
     public function refresh(float $lat, float $lng, float $radiusKm): int
     {
-        $radius = (int) ceil(min($radiusKm, OsservaprezziClient::MAX_RADIUS_KM));
-        $cell = sprintf('%.2f|%.2f|%d', round($lat / self::CELL) * self::CELL, round($lng / self::CELL) * self::CELL, $radius);
+        // A Osservaprezzi va il centro della cella, non la posizione esatta
+        // dell'utente: il raggio cresce del margine che serve a coprire la
+        // stessa zona da qualunque punto della cella.
+        $centerLat = round(round($lat / self::CELL) * self::CELL, 2);
+        $centerLng = round(round($lng / self::CELL) * self::CELL, 2);
+        $radius = (int) ceil(min($radiusKm + self::CELL_MARGIN_KM, OsservaprezziClient::MAX_RADIUS_KM));
+        $cell = sprintf('%.2f|%.2f|%d', $centerLat, $centerLng, $radius);
         $now = $this->now();
         if ($this->recent(self::ERROR_KEY, $now, $this->pauseMinutes) || $this->recent($cell, $now, $this->ttlMinutes)) {
             return 0;
         }
         try {
-            $rows = $this->client->nearby($lat, $lng, $radius);
+            $rows = $this->client->nearby($centerLat, $centerLng, $radius);
         } catch (OsservaprezziException $e) {
             ErrorLog::write('benzina: ' . $e->getMessage());
             $this->mark(self::ERROR_KEY, $now);

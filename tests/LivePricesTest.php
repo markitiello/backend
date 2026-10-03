@@ -99,7 +99,8 @@ final class LivePricesTest extends TestCase
         self::assertNull($db->one('SELECT 1 AS x FROM price_changes WHERE station_id = 61952'));
 
         $body = json_decode((string) $this->sent[0]['request']->getBody(), true);
-        self::assertSame(['points' => [['lat' => 45.4781, 'lng' => 9.227]], 'radius' => 5], $body);
+        // Centro della cella, non la posizione esatta; raggio con il margine.
+        self::assertSame(['points' => [['lat' => 45.48, 'lng' => 9.22]], 'radius' => 7], $body);
     }
 
     public function testUnaRichiestaOgniDieciMinutiPerZona(): void
