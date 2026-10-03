@@ -94,6 +94,17 @@ final class SecurityTest extends TestCase
         self::assertSame(401, self::statusFor($token()));
     }
 
+    public function testIlMotivoDelRifiutoEIndicato(): void
+    {
+        $app = self::appCheckApp();
+        [, $body] = self::get($app, '/v1/stations/nearby', self::CENTER);
+        self::assertStringContainsString('token App Check assente', $body['detail']);
+
+        $token = self::token(['sub' => '1:123456789:android:nuova']);
+        [, $body] = self::get($app, '/v1/stations/nearby', self::CENTER, ['X-Firebase-AppCheck' => $token]);
+        self::assertStringContainsString('app non autorizzata (1:123456789:android:nuova)', $body['detail']);
+    }
+
     public function testSenzaConfigurazioneTuttoRifiutato(): void
     {
         $app = self::app(config: new Config());

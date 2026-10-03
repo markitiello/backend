@@ -57,7 +57,8 @@ final class AppCheckVerifier
             throw new UnexpectedValueException('claim obbligatori mancanti');
         }
         if ($this->appIds !== [] && !in_array($claims->sub, $this->appIds, true)) {
-            throw new UnexpectedValueException('app non autorizzata');
+            // L'id (es. 1:123:android:abc) va aggiunto a BENZINA_APPCHECK_APP_IDS.
+            throw new UnexpectedValueException('app non autorizzata (' . $claims->sub . ')');
         }
         return $claims;
     }

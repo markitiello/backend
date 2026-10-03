@@ -73,12 +73,13 @@ final class App
             $v1->get('/trends/area', [$api, 'areaTrend']);
             $v1->get('/trends/alerts', [$api, 'trendAlerts']);
         })->add(static function (Request $request, Handler $handler) use ($authenticator): Response {
-            $allowed = $authenticator->allows(
+            $denial = $authenticator->denial(
                 $request->getHeaderLine(Authenticator::APPCHECK_HEADER),
                 $request->getHeaderLine(Authenticator::API_KEY_HEADER),
             );
-            if (!$allowed) {
-                throw new HttpProblem(401, 'Credenziali mancanti o non valide: serve un token App Check o una chiave API.');
+            if ($denial !== null) {
+                ErrorLog::write('benzina: 401 ' . $request->getUri()->getPath() . ': ' . $denial);
+                throw new HttpProblem(401, "Credenziali mancanti o non valide ($denial).");
             }
             return $handler->handle($request);
         });

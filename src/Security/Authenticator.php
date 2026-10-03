@@ -38,24 +38,40 @@ final class Authenticator
 
     public function allows(string $appCheckToken, string $apiKey): bool
     {
+        return $this->denial($appCheckToken, $apiKey) === null;
+    }
+
+    /**
+     * Motivo del rifiuto, `null` se la richiesta è ammessa. Serve a capire
+     * dall'app se il token manca (App Check non configurato sul telefono) o
+     * se il backend lo rifiuta (progetto o app id sbagliati, token scaduto).
+     */
+    public function denial(string $appCheckToken, string $apiKey): ?string
+    {
         if ($this->config->authDisabled) {
-            return true;
+            return null;
         }
-        if ($appCheckToken !== '' && $this->verifier !== null) {
-            try {
-                $this->verifier->verify($appCheckToken);
-                return true;
-            } catch (\UnexpectedValueException) {
-                // prova con la chiave API
+        $reason = 'token App Check assente';
+        if ($appCheckToken !== '') {
+            if ($this->verifier === null) {
+                $reason = 'App Check non configurato sul server (BENZINA_APPCHECK_PROJECT_NUMBER)';
+            } else {
+                try {
+                    $this->verifier->verify($appCheckToken);
+                    return null;
+                } catch (\UnexpectedValueException $e) {
+                    $reason = 'token App Check rifiutato: ' . $e->getMessage();
+                }
             }
         }
         if ($apiKey !== '') {
             foreach ($this->config->apiKeys as $key) {
                 if (hash_equals($key, $apiKey)) {
-                    return true;
+                    return null;
                 }
             }
+            $reason .= '; chiave API non valida';
         }
-        return false;
+        return $reason;
     }
 }
